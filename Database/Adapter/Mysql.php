@@ -19,7 +19,16 @@ class phpDataMapper_Database_Adapter_Mysql extends phpDataMapper_Database_Adapte
 	protected $collate = 'utf8_unicode_ci';
 	// Map datamapper field types to actual database adapter types
 	protected $fieldTypeMap = array(
-		'string' => 'varchar'
+		'string' => 'varchar',
+		'text' => 'text',
+		'int' => 'int',
+		'integer' => 'int',
+		'bool' => 'tinyint',
+		'boolean' => 'tinyint',
+		'float' => 'float',
+		'double' => 'double',
+		'date' => 'date',
+		'datetime' => 'datetime'
 		);
 	
 	
