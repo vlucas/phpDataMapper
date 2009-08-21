@@ -56,6 +56,18 @@ abstract class phpDataMapper_Model_Relation
 	
 	
 	/**
+	 * Get sorting for relations
+	 *
+	 * @return array
+	 */
+	public function getRelationSorting()
+	{
+		$sorting = isset($this->relationData['order_by']) ? $this->relationData['order_by'] : array();
+		return $sorting;
+	}
+	
+	
+	/**
 	 * Called automatically when attribute is printed
 	 */
 	public function __toString()

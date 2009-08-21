@@ -20,12 +20,12 @@ class phpDataMapper_Model_Relation_HasOne extends phpDataMapper_Model_Relation
 	 */
 	public function all()
 	{
-		return $this->mapper->first($this->getForeignKeys());
+		return $this->mapper->first($this->getForeignKeys(), $this->getRelationSorting());
 	}
 	
 	
 	/**
-	 * Enable isset() for object properties
+	 * isset() functionality passthrough to row
 	 */
 	public function __isset($key)
 	{
@@ -39,7 +39,7 @@ class phpDataMapper_Model_Relation_HasOne extends phpDataMapper_Model_Relation
 	
 	
 	/**
-	 * Getter
+	 * Getter passthrough to row
 	 */
 	public function __get($var)
 	{
@@ -53,7 +53,7 @@ class phpDataMapper_Model_Relation_HasOne extends phpDataMapper_Model_Relation
 	
 	
 	/**
-	 * Setter
+	 * Setter passthrough to row
 	 */
 	public function __set($var, $value)
 	{
@@ -65,7 +65,7 @@ class phpDataMapper_Model_Relation_HasOne extends phpDataMapper_Model_Relation
 	
 	
 	/**
-	 * Getter function passthrough
+	 * Passthrough for method calls on row
 	 */
 	public function __call($func, $args)
 	{

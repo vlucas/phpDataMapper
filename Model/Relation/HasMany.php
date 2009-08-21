@@ -20,7 +20,7 @@ class phpDataMapper_Model_Relation_HasMany extends phpDataMapper_Model_Relation 
 	 */
 	public function all()
 	{
-		return $this->mapper->all($this->getForeignKeys());
+		return $this->mapper->all($this->getForeignKeys(), $this->getRelationSorting());
 	}
 	
 	
@@ -29,7 +29,7 @@ class phpDataMapper_Model_Relation_HasMany extends phpDataMapper_Model_Relation 
 	 */
 	public function first()
 	{
-		return $this->mapper->first($this->getForeignKeys());
+		return $this->mapper->first($this->getForeignKeys(), $this->getRelationSorting());
 	}
 	
 	
