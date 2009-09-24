@@ -248,42 +248,204 @@ abstract class phpDataMapper_Database_Adapter_Abstract implements phpDataMapper_
 	
 	
 	/**
-	 * Compare an associative array recursively
+	 * Insert given row object with set properties
 	 */
-	public function arrayCompare($array1, $array2)
+	public function insert($table, array $data)
 	{
-		foreach($array1 as $key => $value)
-		{
-			if(is_array($value))
-			{
-				  if(!isset($array2[$key]))
-				  {
-					  $difference[$key] = $value;
-				  }
-				  elseif(!is_array($array2[$key]))
-				  {
-					  $difference[$key] = $value;
-				  }
-				  else
-				  {
-					  $new_diff = $this->{__FUNCTION__}($value, $array2[$key]);
-					  if($new_diff != FALSE)
-					  {
-							$difference[$key] = $new_diff;
-					  }
-				  }
-			  }
-			  elseif(!isset($array2[$key]) || $array2[$key] != $value)
-			  {
-				  $difference[$key] = $value;
-			  }
+		$binds = $this->getBindsFromConditions($data);
+		
+		// build the statement
+		$sql = "INSERT INTO " . $table .
+			" (" . implode(', ', array_keys($binds)) . ")" .
+			" VALUES(:" . implode(', :', array_keys($binds)) . ")";
+		
+		// Add query to log
+		phpDataMapper_Model::logQuery($sql, $binds);
+		
+		// Prepare update query
+		$stmt = $this->prepare($sql);
+		
+		if($stmt) {
+			// Bind values to columns
+			$this->bindValues($stmt, $binds);
+			
+			// Execute
+			if($stmt->execute()) {
+				$result = $this->lastInsertId();
+			} else {
+				$result = false;
+			}
+		} else {
+			$result = false;
 		}
-		return !isset($difference) ? 0 : $difference;
-	} 
+		
+		return $result;
+	}
 	
 	
 	/**
-	 * PDO passthrough
+	 * Update given row object
+	 */
+	public function update($table, array $data, array $where = array())
+	{
+		// Get "col = :col" pairs for the update query
+		$placeholders = array();
+		$binds = array();
+		foreach($data as $field => $value) {
+			$placeholders[] = $field . " = :" . $field . "";
+			$binds[$field] = $value;
+		}
+		
+		// Where clauses
+		$sqlWheres = array();
+		if(count($where) > 0) {
+			foreach($where as $wField => $wValue) {
+				$sqlWheres[] = $wField . " = :w_" . $wField;
+				$binds['w_' . $wField] = $wValue;
+			}
+		}
+		
+		// Ensure there are actually updated values on THIS table
+		if(count($binds) > 0) {
+			// Build the query
+			$sql = "UPDATE " . $table .
+				" SET " . implode(', ', $placeholders) .
+				" WHERE " . implode(' AND ', $sqlWheres);
+			
+			// Add query to log
+			phpDataMapper_Model::logQuery($sql, $binds);
+			
+			// Prepare update query
+			$stmt = $this->prepare($sql);
+			
+			// Bind column values
+			$this->bindValues($stmt, $binds);
+			
+			if($stmt) {
+				// Execute
+				if($stmt->execute($binds)) {
+					$result = $this->getPrimaryKey($row);
+				} else {
+					$result = false;
+				}
+			} else {
+				$result = false;
+			}
+		} else {
+			$result = false;
+		}
+		
+		return $result;
+	}
+	
+	
+	/**
+	 * Delete rows matching given conditions
+	 *
+	 * @param array $conditions Array of conditions in column => value pairs
+	 */
+	public function delete($table, array $data)
+	{
+		$sql = "DELETE FROM " . $table . "";
+		$sql = $this->getSqlFromConditions($sql, $data);
+		$stmt = $this->prepare($sql, $this->getBindsFromConditions($data));
+		if($stmt) {
+			// Execute
+			if($stmt->execute($binds)) {
+				$result = true;
+			} else {
+				$result = false;
+			}
+		} else {
+			$result = false;
+		}
+		return $result;
+	}
+	
+	
+	/**
+	 * Builds an SQL string given conditions
+	 */
+	protected function getSqlFromConditions($sql, array $conditions)
+	{
+		$sqlWhere = array();
+		$defaultColOperators = array(0 => '', 1 => '=');
+		$ci = 0;
+		foreach($conditions as $column => $value) {
+			// Column name with comparison operator
+			$colData = explode(' ', $column);
+			$col = $colData[0];
+			
+			// Array of values, assume IN clause
+			if(is_array($value)) {
+				$sqlWhere[] = $col . " IN('" . implode("', '", $value) . "')";
+			
+			// NULL value
+			} elseif(is_null($value)) {
+				$sqlWhere[] = $col . " IS NULL";
+			
+			// Standard string value
+			} else {
+				$colComparison = isset($colData[1]) ? $colData[1] : '=';
+				$columnSql = $col . ' ' . $colComparison;
+				
+				// Add to binds array and add to WHERE clause
+				$colParam = str_replace('.', '_', $col) . $ci;
+				$sqlWhere[] = $columnSql . " :" . $colParam . "";
+			}
+			
+			// Increment ensures column name distinction
+			$ci++;
+		}
+		
+		$sql .= empty($sqlWhere) ? "" : " WHERE " . implode(' AND ', $sqlWhere);
+		return $sql;
+	}
+	
+	
+	/**
+	 * Returns array of binds to pass to query function
+	 */
+	protected function getBindsFromConditions(array $conditions)
+	{
+		$binds = array();
+		$ci = 0;
+		foreach($conditions as $column => $value) {
+			// Can't bind array of values
+			if(!is_array($value)) {
+				// Column name with comparison operator
+				list($col) = explode(' ', $column);
+				$colParam = str_replace('.', '_', $col) . $ci;
+				
+				// Add to binds array and add to WHERE clause
+				$binds[$colParam] = $value;
+			}
+			
+			// Increment ensures column name distinction
+			$ci++;
+		}
+		return $binds;
+	}
+	
+	
+	/**
+	 * Bind array of field/value data to given statement
+	 *
+	 * @param PDOStatement $stmt
+	 * @param array $binds
+	 */
+	protected function bindValues($stmt, array $binds)
+	{
+		// Bind each value to the given prepared statement
+		foreach($binds as $field => $value) {
+			$stmt->bindValue($field, $value);
+		}
+		return true;
+	}
+	
+	
+	/**
+	 * PDO/Connection passthrough
 	 */
 	public function __call($func, $args)
 	{

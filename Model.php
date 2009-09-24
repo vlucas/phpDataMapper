@@ -12,7 +12,7 @@
  * @modifiedby		$LastChangedBy$
  * @lastmodified	$Date$
  */
-require('Exception.php');
+require(dirname(__FILE__) . '/Exception.php');
 class phpDataMapper_Model implements Countable, IteratorAggregate
 {
 	protected $adapter;
@@ -364,7 +364,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	public function query($sql, array $binds = array())
 	{
 		// Add query to log
-		$this->logQuery($sql, $binds);
+		self::logQuery($sql, $binds);
 		
 		// Prepare and execute query
 		if($stmt = $this->adapter->prepare($sql)) {
@@ -416,71 +416,6 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 			$this->activeQuery->limit($limit, $offset);
 		}
 		return $this;
-	}
-	
-	
-	/**
-	 * Builds an SQL string given conditions
-	 */
-	protected function getSqlFromConditions($sql, array $conditions)
-	{
-		$sqlWhere = array();
-		$defaultColOperators = array(0 => '', 1 => '=');
-		$ci = 0;
-		foreach($conditions as $column => $value) {
-			// Column name with comparison operator
-			$colData = explode(' ', $column);
-			$col = $colData[0];
-			
-			// Array of values, assume IN clause
-			if(is_array($value)) {
-				$sqlWhere[] = $col . " IN('" . implode("', '", $value) . "')";
-			
-			// NULL value
-			} elseif(is_null($value)) {
-				$sqlWhere[] = $col . " IS NULL";
-			
-			// Standard string value
-			} else {
-				$colComparison = isset($colData[1]) ? $colData[1] : '=';
-				$columnSql = $col . ' ' . $colComparison;
-				
-				// Add to binds array and add to WHERE clause
-				$colParam = str_replace('.', '_', $col) . $ci;
-				$sqlWhere[] = $columnSql . " :" . $colParam . "";
-			}
-			
-			// Increment ensures column name distinction
-			$ci++;
-		}
-		
-		$sql .= empty($sqlWhere) ? "" : " WHERE " . implode(' AND ', $sqlWhere);
-		return $sql;
-	}
-	
-	
-	/**
-	 * Returns array of binds to pass to query function
-	 */
-	protected function getBindsFromConditions(array $conditions)
-	{
-		$binds = array();
-		$ci = 0;
-		foreach($conditions as $column => $value) {
-			// Can't bind array of values
-			if(!is_array($value)) {
-				// Column name with comparison operator
-				list($col) = explode(' ', $column);
-				$colParam = str_replace('.', '_', $col) . $ci;
-				
-				// Add to binds array and add to WHERE clause
-				$binds[$colParam] = $value;
-			}
-			
-			// Increment ensures column name distinction
-			$ci++;
-		}
-		return $binds;
 	}
 	
 	
@@ -552,54 +487,21 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	 */
 	public function insert(phpDataMapper_Model_Row $row)
 	{
+		$data = array();
 		$rowData = $row->getData();
-		
-		// Fields that exist in the table
-		$tableFields = array_keys($this->fields);
-		
-		// Fields that have been set/updated on the row that also exist in the table
-		$rowFields = array_intersect($tableFields, array_keys($rowData));
-		
-		// Get "col = :col" pairs for the update query
-		$insertFields = array();
-		$binds = array();
 		foreach($rowData as $field => $value) {
 			if($this->fieldExists($field)) {
-				$insertFields[] = $field;
 				// Empty values will be NULL (easier to be handled by databases)
-				$binds[$field] = $this->isEmpty($value) ? null : $value;
+				$data[$field] = $this->isEmpty($value) ? null : $value;
 			}
 		}
 		
-		// Ensure there are actually values for fields on THIS table
-		if(count($insertFields) > 0) {
-			// build the statement
-			$sql = "INSERT INTO " . $this->getTable() .
-				" (" . implode(', ', $rowFields) . ")" .
-				" VALUES(:" . implode(', :', $rowFields) . ")";
-			
-			// Add query to log
-			$this->logQuery($sql, $binds);
-			
-			// Prepare update query
-			$stmt = $this->adapter->prepare($sql);
-			
-			if($stmt) {
-				// Bind values to columns
-				$this->bindValues($stmt, $binds);
-				
-				// Execute
-				if($stmt->execute()) {
-					$rowPk = $this->adapter->lastInsertId();
-					$pkField = $this->getPrimaryKeyField();
-					$row->$pkField = $rowPk;
-					$result = $rowPk;
-				} else {
-					$result = false;
-				}
-			} else {
-				$result = false;
-			}
+		// Ensure there is actually data to update
+		if(count($data) > 0) {
+			$result = $this->adapter->insert($this->getTable(), $data);
+			// Update primary key on row
+			$pkField = $this->getPrimaryKeyField();
+			$row->$pkField = $result;
 		} else {
 			$result = false;
 		}
@@ -618,46 +520,17 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	 */
 	public function update(phpDataMapper_Model_Row $row)
 	{
-		// Get "col = :col" pairs for the update query
-		$placeholders = array();
+		// Ensure fields exist to prevent errors
 		$binds = array();
 		foreach($row->getDataModified() as $field => $value) {
 			if($this->fieldExists($field)) {
-				$placeholders[] = $field . " = :" . $field . "";
 				// Empty values will be NULL (easier to be handled by databases)
 				$binds[$field] = $this->isEmpty($value) ? null : $value;
 			}
 		}
 		
-		// Ensure there are actually updated values on THIS table
-		if(count($placeholders) > 0) {
-			// Build the query
-			$sql = "UPDATE " . $this->getTable() .
-				" SET " . implode(', ', $placeholders) .
-				" WHERE " . $this->getPrimaryKeyField() . " = '" . $this->getPrimaryKey($row) . "'";
-			
-			// Add query to log
-			$this->logQuery($sql, $binds);
-			
-			// Prepare update query
-			$stmt = $this->adapter->prepare($sql);
-			
-			// Bind column values
-			$this->bindValues($stmt, $binds);
-			
-			if($stmt) {
-				// Execute
-				if($stmt->execute($binds)) {
-					$result = $this->getPrimaryKey($row);
-				} else {
-					$result = false;
-				}
-			} else {
-				$result = false;
-			}
-		} else {
-			$result = false;
-		}
+		// Handle with adapter
+		$result = $this->adapter->update($this->getTable(), $binds, array($this->getPrimaryKeyField() => $this->getPrimaryKey($row)));
 		
 		// Save related rows
 		if($result) {
@@ -673,14 +546,8 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	 */
 	public function destroy(phpDataMapper_Model_Row $row)
 	{
-		$where = $this->getPrimaryKeyField() . " = '" . $this->getPrimaryKey($row) . "'";
-		$sql = "DELETE FROM " . $this->table . " WHERE " . $where;
-		
-		// Add query to log
-		$this->logQuery($sql);
-		
-		$this->adapter->exec($sql);
-		return true;
+		$conditions = array($this->getPrimaryKeyField() => $this->getPrimaryKey($row));
+		return $this->delete($conditions);
 	}
 	
 	
@@ -691,10 +558,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	 */
 	public function delete(array $conditions)
 	{
-		$sql = "DELETE FROM " . $this->table . "";
-		$sql = $this->getSqlFromConditions($sql, $conditions);
-		$result = $this->query($sql, $this->getBindsFromConditions($conditions));
-		return true;
+		return $this->adapter->delete($this->table, $conditions);
 	}
 	
 	
@@ -888,7 +752,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	 * @param string $sql
 	 * @param array $data
 	 */
-	public function logQuery($sql, $data = null)
+	public static function logQuery($sql, $data = null)
 	{
 		self::$queryLog[] = array(
 			'query' => $sql,

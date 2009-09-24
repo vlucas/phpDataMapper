@@ -49,4 +49,22 @@ interface phpDataMapper_Database_Adapter_Interface
 	 * @param string $string
 	 */
 	public function escape($string);
+	
+	
+	/**
+	 * Insert row into database
+	 */
+	public function insert($table, array $data);
+	
+	
+	/**
+	 * Update row in database
+	 */
+	public function update($table, array $data, array $where = array());
+	
+	
+	/**
+	 * Delete row from database
+	 */
+	public function delete($table, array $where);
 }
