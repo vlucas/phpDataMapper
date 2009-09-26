@@ -19,15 +19,19 @@ class SampleNews extends phpDataMapper_Model {
 
 // MySQL Test Cases
 class AdapterMysqlTestCase extends UnitTestCase {
-	protected $sampleAdapter, $sampleNewsMaper;
+	protected $sampleAdapter;
+	protected $sampleNewsMaper;
 	
-	public function setUp() {
+	public function __construct() {
 		// New db connection
-		$this->sampleAdapter = new phpDataMapper_Database_Adapter_Mysql('localhost', 'test_news', 'root', '');
+		$this->sampleAdapter = new phpDataMapper_Database_Adapter_Mysql('localhost', 'test', 'test', 'password');
 		
 		// New mapper
 		$this->sampleNewsMapper = new SampleNews($this->sampleAdapter);
+		$this->sampleNewsMapper->migrate();
 	}
+	public function setUp() {}
+	public function tearDown() {}
 	
 	public function testAdapterInstance() {
 		$this->assertIsA($this->sampleAdapter, 'phpDataMapper_Database_Adapter_Abstract');
@@ -36,12 +40,6 @@ class AdapterMysqlTestCase extends UnitTestCase {
 	public function testMapperInstance() {
 		$this->assertIsA($this->sampleNewsMapper, 'phpDataMapper_Model');
 	}
-	// @todo Need to get back raw SQL code that was run
-	public function testTableMigrate() {
-		$mapper = $this->sampleNewsMapper;
-		$mapper->migrate();
-		//$this->assert
-	}
 	
 	public function testSampleNewsInsert() {
 		$mapper = $this->sampleNewsMapper;
@@ -49,20 +47,22 @@ class AdapterMysqlTestCase extends UnitTestCase {
 		$post->title = "Test Post";
 		$post->body = "<p>This is a really awesome super-duper post.</p><p>It's really quite lovely.</p>";
 		$post->date_created = date($mapper->getDateTimeFormat());
-		$result = $mapper->save($post);
+		$result = $mapper->insert($post);
 		$this->assertTrue($result);
 	}
 	
 	public function testSampleNewsUpdate() {
-		
+		$mapper = $this->sampleNewsMapper;
+		$post = $mapper->first(array('title' => "Test Post"));
+		$post->title = "Test Post Modified";
+		$result = $mapper->update($post);
+		$this->assertTrue($result);
 	}
 	
 	public function testSampleNewsDelete() {
-		
-	}
-	
-	public function tearDown() {
-		$this->sampleNewsMapper->truncateTable();
-		//$this->sampleNewsMapper->dropTable();
+		$mapper = $this->sampleNewsMapper;
+		$post = $mapper->first(array('title' => "Test Post Modified"));
+		$result = $mapper->destroy($post);
+		$this->assertTrue($result);
 	}
 }
