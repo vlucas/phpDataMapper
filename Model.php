@@ -218,12 +218,12 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 		// Create new row object
 		if(!$primaryKeyValue) {
 			$row = new $this->rowClass();
-			return $row;
 		
 		// Find record by primary key
 		} else {
-			return $this->first(array($this->getPrimaryKeyField() => $primaryKeyValue));
+			$row = $this->first(array($this->getPrimaryKeyField() => $primaryKeyValue));
 		}
+		return $row;
 	}
 	
 	
@@ -559,6 +559,24 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	public function delete(array $conditions)
 	{
 		return $this->adapter->delete($this->table, $conditions);
+	}
+	
+	
+	/**
+	 * Truncate a database table
+	 * Should delete all rows and reset serial/auto_increment keys to 0
+	 */
+	public function truncateTable() {
+		return $this->adapter->truncateTable($this->getTable());
+	}
+	
+	
+	/**
+	 * Drop a database table
+	 * Destructive and dangerous - drops entire table and all data
+	 */
+	public function dropTable() {
+		return $this->adapter->dropTable($this->getTable());
 	}
 	
 	

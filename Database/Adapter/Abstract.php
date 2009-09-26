@@ -324,7 +324,7 @@ abstract class phpDataMapper_Database_Adapter_Abstract implements phpDataMapper_
 			if($stmt) {
 				// Execute
 				if($stmt->execute($binds)) {
-					$result = $this->getPrimaryKey($row);
+					$result = true;
 				} else {
 					$result = false;
 				}
@@ -346,6 +346,8 @@ abstract class phpDataMapper_Database_Adapter_Abstract implements phpDataMapper_
 	 */
 	public function delete($table, array $data)
 	{
+		$binds = $this->getBindsFromConditions($data);
+		
 		$sql = "DELETE FROM " . $table . "";
 		$sql = $this->getSqlFromConditions($sql, $data);
 		$stmt = $this->prepare($sql, $this->getBindsFromConditions($data));
