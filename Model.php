@@ -563,6 +563,24 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	
 	
 	/**
+	 * Truncate a database table
+	 * Should delete all rows and reset serial/auto_increment keys to 0
+	 */
+	public function truncateTable() {
+		return $this->getAdapter()->truncateTable($this->getTable());
+	}
+	
+	
+	/**
+	 * Drop a database table
+	 * Destructive and dangerous - drops entire table and all data
+	 */
+	public function dropTable() {
+		return $this->getAdapter()->dropTable($this->getTable());
+	}
+	
+	
+	/**
 	 * Run set validation rules on fields
 	 * 
 	 * @todo A LOT more to do here... More validation, break up into classes with rules, etc.
