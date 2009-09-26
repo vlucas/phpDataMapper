@@ -256,7 +256,7 @@ abstract class phpDataMapper_Database_Adapter_Abstract implements phpDataMapper_
 		
 		// build the statement
 		$sql = "INSERT INTO " . $table .
-			" (" . implode(', ', array_keys($binds)) . ")" .
+			" (" . implode(', ', array_keys($data)) . ")" .
 			" VALUES(:" . implode(', :', array_keys($binds)) . ")";
 		
 		// Add query to log
@@ -362,6 +362,26 @@ abstract class phpDataMapper_Database_Adapter_Abstract implements phpDataMapper_
 			$result = false;
 		}
 		return $result;
+	}
+	
+	
+	/**
+	 * Truncate a database table
+	 * Should delete all rows and reset serial/auto_increment keys to 0
+	 */
+	public function truncateTable($table) {
+		$sql = "TRUNCATE TABLE " . $table;
+		return $this->exec($sql);
+	}
+	
+	
+	/**
+	 * Drop a database table
+	 * Destructive and dangerous - drops entire table and all data
+	 */
+	public function dropTable($table) {
+		$sql = "DROP TABLE " . $table;
+		return $this->exec($sql);
 	}
 	
 	
