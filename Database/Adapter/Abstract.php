@@ -122,6 +122,7 @@ abstract class phpDataMapper_Database_Adapter_Abstract implements phpDataMapper_
 			'length' => null,
 			'required' => false,
 			'null' => true,
+			'unsigned' => false,
 			
 			'auto_increment' => false,
 			'primary' => false,
