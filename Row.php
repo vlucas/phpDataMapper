@@ -1,18 +1,12 @@
 <?php
 /**
- * $Id$
- * 
  * DataMapper result class - each row is fetched into this object
  * 
  * @package phpDataMapper
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
- * 
- * @version			$Revision$
- * @modifiedby		$LastChangedBy$
- * @lastmodified	$Date$
  */
-class phpDataMapper_Model_Row
+class phpDataMapper_Row
 {
 	protected $_loaded;
 	protected $_data = array();
@@ -81,7 +75,7 @@ class phpDataMapper_Model_Row
 			}
 			return true;
 		} else {
-			throw new phpDataMapper_Exception(__METHOD__ . " Expected array or object input - " . gettype($data) . " given");
+			throw new InvalidArgumentException(__METHOD__ . " Expected array or object input - " . gettype($data) . " given");
 		}
 	}
 	

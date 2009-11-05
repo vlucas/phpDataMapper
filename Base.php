@@ -1,28 +1,26 @@
 <?php
 /**
- * $Id$
- * 
  * Base DataMapper Model
  * 
  * @package phpDataMapper
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
- * 
- * @version			$Revision$
- * @modifiedby		$LastChangedBy$
- * @lastmodified	$Date$
  */
 require(dirname(__FILE__) . '/Exception.php');
-class phpDataMapper_Model implements Countable, IteratorAggregate
+class phpDataMapper_Base
 {
+	// Stored adapter connections
 	protected $adapter;
+	protected $adapterSlave;
 	
-	// Class Names for required classes
-	protected $rowClass = 'phpDataMapper_Model_Row';
-	protected $resultSetClass = 'phpDataMapper_Model_ResultSet';
+	// Class Names for required classes - Here so they can be easily overridden
+	protected $rowClass = 'phpDataMapper_Row';
+	protected $queryClass = 'phpDataMapper_Query';
+	protected $resultSetClass = 'phpDataMapper_Query_ResultSet';
 	protected $exceptionClass = 'phpDataMapper_Exception';
 	protected $validationClass = 'phpDataMapper_Validation';
 	
+	// Table setup info
 	protected $table;
 	protected $fields = array();
 	protected $primaryKey;
@@ -45,10 +43,6 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 			);
 	*/
 	
-	// Current active query
-	protected $activeQuery;
-	protected $activeQueryResults;
-	
 	// Class loader instance and action name
 	protected $loader;
 	protected $loaderAction;
@@ -56,16 +50,22 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	// Array of error messages and types
 	protected $errors = array();
 	
-	// Array of all queries that have been executed for any DataMapper (static)
-	protected static $queryLog = array();
-	
 	
 	/**
 	 *	Constructor Method
 	 */
-	public function __construct(phpDataMapper_Database_Adapter_Interface $adapter)
+	public function __construct(phpDataMapper_Adapter_Interface $adapter, $adapterSlave = null)
 	{
 		$this->adapter = $adapter;
+		
+		// Slave adapter if given (usually for reads)
+		if(null !== $adapterSlave) {
+			if($adapterSlave instanceof phpDataMapper_Adapter_Interface) {
+				$this->adapterSlave = $adapterSlave;
+			} else {
+				throw new InvalidArgumentException("Slave adapter must be an instance of 'phpDataMapper_Database_Adapter_Interface'");
+			}
+		}
 		
 		// Ensure table has been defined
 		if(!$this->table) {
@@ -90,81 +90,6 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	
 	
 	/**
-	 * SPL Countable function
-	 * Called automatically when attribute is used in a 'count()' function call
-	 *
-	 * @return int
-	 */
-	public function count()
-	{
-		// Execute query and return count
-		$result = $this->execute();
-		return ($result !== false) ? count($result) : 0;
-	}
-	
-	
-	/**
-	 * SPL IteratorAggregate function
-	 * Called automatically when attribute is used in a 'foreach' loop
-	 *
-	 * @return phpDataMapper_Model_ResultSet
-	 */
-	public function getIterator()
-	{
-		// Execute query and return ResultSet for iteration
-		$result = $this->execute();
-		return ($result !== false) ? $result : array();
-	}
-	
-	
-	/**
-	 * Convenience function passthrough for ResultSet
-	 * Triggers execute() and empties current active query
-	 *
-	 * @return array 
-	 */
-	public function toArray($keyColumn, $valueColumn)
-	{
-		// Execute query and call the 'toArray' function on the ResultSet
-		$result = $this->execute();
-		return ($result !== false) ? $result->toArray($keyColumn, $valueColumn) : array();
-	}
-	
-	
-	/**
-	 * Execute and return current active query result set
-	 * @param boolean $clearActiveQuery Clears current active query content if true
-	 */
-	public function execute()
-	{
-		// Use cached results if found (previous count() or other internal call)
-		if($this->activeQueryResults) {
-			$results = $this->activeQueryResults;
-		} else {
-			if($this->activeQuery instanceof phpDataMapper_Database_Query_Interface) {
-				$results = $this->query($this->activeQuery->sql(), $this->activeQuery->getParameters());
-				$this->activeQueryResults = $results;
-			} else {
-				$results = array();
-			}
-		}
-		
-		return $results;
-	}
-	
-	
-	/**
-	 * Clears current active query content to begin a new query
-	 */
-	public function clearActiveQuery()
-	{
-		$this->activeQuery = null;
-		$this->activeQueryResults = null;
-		return true;
-	}
-	
-	
-	/**
 	 * Get current adapter object
 	 */
 	public function getAdapter()
@@ -185,7 +110,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	/**
 	 * Get value of primary key for given row result
 	 */
-	public function getPrimaryKey(phpDataMapper_Model_Row $row)
+	public function getPrimaryKey(phpDataMapper_Row $row)
 	{
 		$pkField = $this->getPrimaryKeyField();
 		return $row->$pkField;
@@ -230,7 +155,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	/**
 	 * Load defined relations 
 	 */
-	public function getRelationsFor(phpDataMapper_Model_Row $row)
+	public function getRelationsFor(phpDataMapper_Row $row)
 	{
 		$relatedColumns = array();
 		if(is_array($this->relations) && count($this->relations) > 0) {
@@ -248,7 +173,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 					$mapper = new $mapperName($this->adapter);
 					
 					// Load relation class
-					$relationClass = 'phpDataMapper_Model_Relation_' . $relation['relation'];
+					$relationClass = 'phpDataMapper_Relation_' . $relation['relation'];
 					if($loadedRel = $this->loadClass($relationClass)) {
 						// Set column equal to relation class instance
 						$relationObj = new $relationClass($mapper, $foreignKeys, $relation);
@@ -314,25 +239,10 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	 *
 	 * @param array $conditions Array of conditions in column => value pairs
 	 * @param array $orderBy Array of ORDER BY columns/values
-	 * @param array $clauses Array of clauses/conditions - limit, etc.
-	 * 
-	 * @todo Implement extra $clauses array
 	 */
-	public function all(array $conditions = array(), array $orderBy = array(), array $clauses = array())
+	public function all(array $conditions = array(), array $orderBy = array())
 	{
-		// Clear previous active query if found
-		if($this->activeQueryResults) {
-			$results = $this->clearActiveQuery();
-		}
-		
-		// Build on active query if it has not been executed yet
-		if($this->activeQuery instanceof phpDataMapper_Database_Query_Interface) {
-			$this->activeQuery->where($conditions)->orderBy($orderBy);
-		} else {
-			// New active query
-			$this->activeQuery = $this->select()->where($conditions)->orderBy($orderBy);
-		}
-		return $this;
+		return $this->select()->where($conditions)->orderBy($orderBy);
 	}
 	
 	
@@ -394,28 +304,12 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 		$adapterName = get_class($this->adapter);
 		$adapterClass = $adapterName . "_Query";
 		if($this->loadClass($adapterClass)) {
-			return new $adapterClass($fields, $this->table);
+			$query = new $this->queryClass($this->adapter);
+			$query->select($fields, $this->table);
+			return $query;
 		} else {
 			throw new $this->exceptionClass(__METHOD__ . " Error: Unable to load new query builder for adapter: '" . $adapterName . "'");
 		}
-	}
-	
-	
-	/**
-	 * Limit executed query to specified amount of rows
-	 * Implemented at adapter-level for databases that support it
-	 * 
-	 * @param int $limit Number of records to return
-	 * @param int $offset Row to start at for limited result set
-	 *
-	 * @todo Implement limit functionality for database adapters that do not support any kind of LIMIT clause
-	 */
-	public function limit($limit = 20, $offset = null)
-	{
-		if($this->activeQuery instanceof phpDataMapper_Database_Query_Interface) {
-			$this->activeQuery->limit($limit, $offset);
-		}
-		return $this;
 	}
 	
 	
@@ -429,7 +323,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 			if($relationColumns && array_key_exists($field, $relationColumns) && (is_array($value) || is_object($value))) {
 				foreach($value as $relatedRow) {
 					// Determine relation object
-					if($value instanceof phpDataMapper_Model_Relation) {
+					if($value instanceof phpDataMapper_Relation) {
 						$relatedObj = $value;
 					} else {
 						$relatedObj = $relationColumns[$field];
@@ -437,7 +331,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 					$relatedMapper = $relatedObj->getMapper();
 					
 					// Row object
-					if($relatedRow instanceof phpDataMapper_Model_Row) {
+					if($relatedRow instanceof phpDataMapper_Row) {
 						$relatedRowObj = $relatedRow;
 						
 					// Associative array
@@ -462,7 +356,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	/**
 	 * Save result object
 	 */
-	public function save(phpDataMapper_Model_Row $row)
+	public function save(phpDataMapper_Row $row)
 	{
 		// Run validation
 		if($this->validate($row)) {
@@ -485,7 +379,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	/**
 	 * Insert given row object with set properties
 	 */
-	public function insert(phpDataMapper_Model_Row $row)
+	public function insert(phpDataMapper_Row $row)
 	{
 		$data = array();
 		$rowData = $row->getData();
@@ -518,7 +412,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	/**
 	 * Update given row object
 	 */
-	public function update(phpDataMapper_Model_Row $row)
+	public function update(phpDataMapper_Row $row)
 	{
 		// Ensure fields exist to prevent errors
 		$binds = array();
@@ -544,7 +438,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	/**
 	 * Destroy/Delete given row object
 	 */
-	public function destroy(phpDataMapper_Model_Row $row)
+	public function destroy(phpDataMapper_Row $row)
 	{
 		$conditions = array($this->getPrimaryKeyField() => $this->getPrimaryKey($row));
 		return $this->delete($conditions);
@@ -585,7 +479,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	 * 
 	 * @todo A LOT more to do here... More validation, break up into classes with rules, etc.
 	 */
-	public function validate(phpDataMapper_Model_Row $row)
+	public function validate(phpDataMapper_Row $row)
 	{
 		// Check validation rules on each feild
 		foreach($this->fields as $field => $fieldAttrs) {
@@ -698,7 +592,7 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 		$loaded = false;
 		
 		// If class has already been defined and it's a subclass of phpDataMapper, skip loading
-		if(class_exists($className, false) && is_subclass_of($className, "phpDataMapper_Model")) {
+		if(class_exists($className, false) && is_subclass_of($className, "phpDataMapper_Base")) {
 			$loaded = true;
 		} else {
 		
@@ -733,49 +627,14 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	
 	
 	/**
-	 * Bind array of field/value data to given statement
-	 *
-	 * @param PDOStatement $stmt
-	 * @param array $binds
-	 */
-	protected function bindValues($stmt, array $binds)
-	{
-		// Bind each value to the given prepared statement
-		foreach($binds as $field => $value) {
-			$stmt->bindValue($field, $value);
-		}
-		return true;
-	}
-	
-	
-	/**
 	 * Prints all executed SQL queries - useful for debugging
 	 */
 	public function debug($row = null)
 	{
-		if($row) {
-			// Dump debugging info for current row
-		}
-		
 		echo "<p>Executed " . $this->getQueryCount() . " queries:</p>";
 		echo "<pre>\n";
-		print_r(self::$queryLog);
+		print_r(phpDataMapper_Query::$queryLog);
 		echo "</pre>\n";
-	}
-	
-	
-	/**
-	 * Log query
-	 *
-	 * @param string $sql
-	 * @param array $data
-	 */
-	public static function logQuery($sql, $data = null)
-	{
-		self::$queryLog[] = array(
-			'query' => $sql,
-			'data' => $data
-			);
 	}
 	
 	
@@ -786,6 +645,6 @@ class phpDataMapper_Model implements Countable, IteratorAggregate
 	 */
 	public function getQueryCount()
 	{
-		return count(self::$queryLog);
+		return count(phpDataMapper_Query::$queryLog);
 	}
 }

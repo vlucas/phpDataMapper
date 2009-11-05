@@ -6,7 +6,7 @@
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
-interface phpDataMapper_Database_Adapter_Interface
+interface phpDataMapper_Adapter_Interface
 {
     /**
     * @param mixed $host Host string or pre-existing PDO object

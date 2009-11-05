@@ -12,7 +12,7 @@
  * @modifiedby		$LastChangedBy$
  * @lastmodified	$Date$
  */
-class phpDataMapper_Model_ResultSet implements Iterator, Countable, ArrayAccess
+class phpDataMapper_Query_ResultSet implements Iterator, Countable, ArrayAccess
 {
 	protected $results = array();
 	protected $resultsIdentities = array();

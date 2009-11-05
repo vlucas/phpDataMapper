@@ -4,13 +4,13 @@ require_once 'PHPUnit/Framework.php';
 
 // Require phpDataMapper
 $baseDir = dirname(dirname(__FILE__));
-require $baseDir . '/Model.php';
-require $baseDir . '/Database/Adapter/Mysql.php';
+require $baseDir . '/Base.php';
+require $baseDir . '/Adapter/Mysql.php';
 
 date_default_timezone_set('America/Chicago');
 
 // Sample news mapper
-class SampleNews extends phpDataMapper_Model {
+class SampleNews extends phpDataMapper_Base {
 	protected $table = 'test_news';
 	protected $fields = array(
 		'id' => array('type' => 'int', 'primary' => true),
@@ -27,21 +27,17 @@ class AdapterMysqlTestCase extends PHPUnit_Framework_TestCase {
 	
 	public function __construct() {
 		// New db connection
-		$this->sampleAdapter = new phpDataMapper_Database_Adapter_Mysql('localhost', 'test', 'test', 'password');
+		$this->sampleAdapter = new phpDataMapper_Adapter_Mysql('localhost', 'test', 'test', 'password');
 		
 		// New mapper
 		$this->sampleNewsMapper = new SampleNews($this->sampleAdapter);
 		$this->sampleNewsMapper->migrate();
 	}
-	public function __destruct()
-	{
-		$this->sampleAdapter->dropTable(); 
-	}
 	public function setUp() {}
 	public function tearDown() {}
 	
 	public function testAdapterInstance() {
-		$this->assertTrue($this->sampleAdapter instanceof phpDataMapper_Database_Adapter_Abstract);
+		$this->assertTrue($this->sampleAdapter instanceof phpDataMapper_Adapter_Abstract);
 	}
 	
 	public function testMapperInstance() {

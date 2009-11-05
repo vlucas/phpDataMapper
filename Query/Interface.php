@@ -6,7 +6,7 @@
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
-interface phpDataMapper_Database_Query_Interface
+interface phpDataMapper_Query_Interface
 {	
 	/**
 	 * Called from mapper's select() function

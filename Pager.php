@@ -21,7 +21,7 @@ class phpDataMapper_Pager
 	/**
 	 *
 	 */
-	public function __construct(phpDataMapper_Model $mapper, $page = 1, $rowsPerPage = 30)
+	public function __construct(phpDataMapper_Query $mapper, $page = 1, $rowsPerPage = 30)
 	{
 		$this->mapper = $mapper;
 		$this->currentPage = $page;

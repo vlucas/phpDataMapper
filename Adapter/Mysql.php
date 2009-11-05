@@ -7,7 +7,7 @@ require_once(dirname(__FILE__) . '/Abstract.php');
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
-class phpDataMapper_Database_Adapter_Mysql extends phpDataMapper_Database_Adapter_Abstract
+class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_Abstract
 {
 	// Format for date columns, formatted for PHP's date() function
 	protected $format_date = "Y-m-d";

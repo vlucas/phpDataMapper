@@ -6,7 +6,7 @@
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
-class phpDataMapper_Database_Adapter_Mysql_Query implements phpDataMapper_Database_Query_Interface
+class phpDataMapper_Adapter_Mysql_Query implements phpDataMapper_Query_Interface
 {
 	protected $select;
 	protected $from;

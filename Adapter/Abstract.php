@@ -7,7 +7,7 @@ require_once(dirname(__FILE__) . '/Interface.php');
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
-abstract class phpDataMapper_Database_Adapter_Abstract implements phpDataMapper_Database_Adapter_Interface
+abstract class phpDataMapper_Adapter_Abstract implements phpDataMapper_Adapter_Interface
 {
 	// Format for date columns, formatted for PHP's date() function
 	protected $FORMAT_DATE;
