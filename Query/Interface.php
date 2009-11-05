@@ -1,6 +1,6 @@
 <?php
 /**
- * $Id$
+ * Query interface
  *
  * @package phpDataMapper
  * @author Vance Lucas <vance@vancelucas.com>
@@ -9,13 +9,21 @@
 interface phpDataMapper_Query_Interface
 {	
 	/**
+	 * Constructor
+	 * 
+	 * @param object $adapter
+	 * @return string
+	 */
+	public function __construct(phpDataMapper_Adapter_Interface $adapter);
+	
+	/**
 	 * Called from mapper's select() function
 	 * 
 	 * @param mixed $fields (optional)
 	 * @param string $table Table name
 	 * @return string
 	 */
-	public function __construct($fields = "*", $table);
+	public function select($fields = "*", $table);
 	
 	/**
 	 * From

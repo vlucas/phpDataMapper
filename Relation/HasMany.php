@@ -1,19 +1,13 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/Relation.php');
 /**
- * $Id$
- * 
  * DataMapper class for 'has many' relations
  * 
  * @package phpDataMapper
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
- * 
- * @version			$Revision$
- * @modifiedby		$LastChangedBy$
- * @lastmodified	$Date$
  */
-class phpDataMapper_Model_Relation_HasMany extends phpDataMapper_Model_Relation implements Countable, IteratorAggregate, ArrayAccess
+class phpDataMapper_Relation_HasMany extends phpDataMapper_Relation implements Countable, IteratorAggregate, ArrayAccess
 {
 	/**
 	 * Load records with current relation data

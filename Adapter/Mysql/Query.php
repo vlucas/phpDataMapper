@@ -8,8 +8,8 @@
  */
 class phpDataMapper_Adapter_Mysql_Query implements phpDataMapper_Query_Interface
 {
-	protected $select;
-	protected $from;
+	protected $fields = array();
+	protected $table;
 	protected $where = "";
 	protected $orderBy;
 	protected $groupBy;
@@ -21,13 +21,21 @@ class phpDataMapper_Adapter_Mysql_Query implements phpDataMapper_Query_Interface
 	
 	
 	/**
+	 * Constructor
+	 * 
+	 * @param object $adapter
+	 * @return string
+	 */
+	public function __construct(phpDataMapper_Adapter_Interface $adapter);
+	
+	/**
 	 * Called from mapper's select() function
 	 * 
 	 * @param mixed $fields (optional)
 	 * @param string $table Table name
 	 * @return string
 	 */
-	public function __construct($fields = "*", $table)
+	public function select($fields = "*", $table)
 	{
 		$this->select = "SELECT " . (is_array($fields) ? implode(', ', $fields) : $fields);
 		$this->from($table);
@@ -48,7 +56,7 @@ class phpDataMapper_Adapter_Mysql_Query implements phpDataMapper_Query_Interface
 	
 	/**
 	 * WHERE conditions
-	 *
+	 * 
 	 * @param array $conditions Array of conditions for this clause
 	 * @param string $type Keyword that will separate each condition - "AND", "OR"
 	 * @param string $setType Keyword that will separate the whole set of conditions - "AND", "OR"

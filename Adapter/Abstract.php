@@ -249,6 +249,16 @@ abstract class phpDataMapper_Adapter_Abstract implements phpDataMapper_Adapter_I
 	
 	
 	/**
+	 * Build a select statement in SQL
+	 * Can be overridden by adapters for custom syntax
+	 */
+	public function select(phpDataMapper_Query $query)
+	{
+	
+	}
+	
+	
+	/**
 	 * Insert given row object with set properties
 	 */
 	public function insert($table, array $data)
@@ -261,7 +271,7 @@ abstract class phpDataMapper_Adapter_Abstract implements phpDataMapper_Adapter_I
 			" VALUES(:" . implode(', :', array_keys($binds)) . ")";
 		
 		// Add query to log
-		phpDataMapper_Model::logQuery($sql, $binds);
+		phpDataMapper_Query::logQuery($sql, $binds);
 		
 		// Prepare update query
 		$stmt = $this->prepare($sql);

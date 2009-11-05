@@ -1,19 +1,13 @@
 <?php
 require_once(dirname(dirname(__FILE__)) . '/Relation.php');
 /**
- * $Id$
- * 
  * DataMapper class for 'has one' relations
  * 
  * @package phpDataMapper
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
- * 
- * @version			$Revision$
- * @modifiedby		$LastChangedBy$
- * @lastmodified	$Date$
  */
-class phpDataMapper_Model_Relation_HasOne extends phpDataMapper_Model_Relation
+class phpDataMapper_Relation_HasOne extends phpDataMapper_Relation
 {
 	/**
 	 * Load records with current relation data

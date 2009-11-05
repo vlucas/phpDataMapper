@@ -41,7 +41,7 @@ class AdapterMysqlTestCase extends PHPUnit_Framework_TestCase {
 	}
 	
 	public function testMapperInstance() {
-		$this->assertTrue($this->sampleNewsMapper instanceof phpDataMapper_Model);
+		$this->assertTrue($this->sampleNewsMapper instanceof phpDataMapper_Base);
 	}
 	
 	public function testSampleNewsInsert() {

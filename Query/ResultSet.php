@@ -1,16 +1,10 @@
 <?php
 /**
- * $Id$
- * 
  * Collection of phpDataMapper_Result objects
  * 
  * @package phpDataMapper
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
- * 
- * @version			$Revision$
- * @modifiedby		$LastChangedBy$
- * @lastmodified	$Date$
  */
 class phpDataMapper_Query_ResultSet implements Iterator, Countable, ArrayAccess
 {

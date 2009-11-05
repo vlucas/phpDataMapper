@@ -6,7 +6,6 @@
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
-require(dirname(__FILE__) . '/Exception.php');
 class phpDataMapper_Base
 {
 	// Stored adapter connections
@@ -58,6 +57,12 @@ class phpDataMapper_Base
 	{
 		$this->adapter = $adapter;
 		
+		// Ensure required classes for minimum activity are loaded
+		$this->loadClass($this->rowClass);
+		$this->loadClass($this->queryClass);
+		$this->loadClass($this->resultSetClass);
+		$this->loadClass($this->exceptionClass);
+		
 		// Slave adapter if given (usually for reads)
 		if(null !== $adapterSlave) {
 			if($adapterSlave instanceof phpDataMapper_Adapter_Interface) {
@@ -83,9 +88,6 @@ class phpDataMapper_Base
 				$this->primaryKey = $field;
 			}
 		}
-		
-		// Register loadClass() function as an autoloader
-		spl_autoload_register(array($this, 'loadClass'));
 	}
 	
 	
@@ -585,23 +587,18 @@ class phpDataMapper_Base
 	
 	
 	/**
-	 * Attempt to load class file
+	 * Attempt to load class file based on phpDataMapper naming conventions
 	 */
-	public function loadClass($className)
+	public static function loadClass($className)
 	{
 		$loaded = false;
 		
-		// If class has already been defined and it's a subclass of phpDataMapper, skip loading
-		if(class_exists($className, false) && is_subclass_of($className, "phpDataMapper_Base")) {
+		// If class has already been defined, skip loading
+		if(class_exists($className, false)) {
 			$loaded = true;
 		} else {
-		
-			// Call specified loader function
-			if($this->loader) {
-				$loaded = call_user_func_array(array($this->loader, $this->loaderAction), array($className));
-			
 			// Require phpDataMapper_* files by assumed folder structure (naming convention)
-			} elseif(strpos($className, "phpDataMapper") !== false) {
+			if(strpos($className, "phpDataMapper") !== false) {
 				$classFile = str_replace("_", "/", $className);
 				$loaded = require_once(dirname(dirname(__FILE__)) . "/" . $classFile . ".php");
 			}
@@ -613,16 +610,6 @@ class phpDataMapper_Base
 		}
 		
 		return $loaded;
-	}
-	
-	
-	/**
-	 * Set 'loader' class to load external files with
-	 */
-	public function setLoader($instance, $action)
-	{
-		$this->loader = $instance;
-		$this->loaderAction = $action;
 	}
 	
 	
@@ -648,3 +635,9 @@ class phpDataMapper_Base
 		return count(phpDataMapper_Query::$queryLog);
 	}
 }
+
+
+/**
+ * Register static 'loadClass' function as an autoloader for files prefixed with 'phpDataMapper_'
+ */
+spl_autoload_register(array('phpDataMapper_Base', 'loadClass'));

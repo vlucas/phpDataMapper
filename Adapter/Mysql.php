@@ -284,4 +284,20 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_Abstract
 		
 		return $syntax;
 	}
+	
+	
+	/**
+	 * Genereate select SQL from query object
+	 */
+	public function selectSql()
+	{	
+		$sql = "
+			SELECT #{?}.fields
+			#{FROM ?}.table
+			#{?}.joins
+			#{WHERE ?}.conditions
+			#{GROUP BY ?}.groups
+			#{ORDER BY ?}.sorts
+			";
+	}
 }

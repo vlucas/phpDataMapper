@@ -6,8 +6,7 @@
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
-require(dirname(__FILE__) . '/Exception.php');
-class phpDataMapper_Query implements phpDataMapper_Query_Interface, Countable, IteratorAggregate
+class phpDataMapper_Query implements Countable, IteratorAggregate
 {
 	protected $adapter;
 	
@@ -21,6 +20,19 @@ class phpDataMapper_Query implements phpDataMapper_Query_Interface, Countable, I
 	public function __construct(phpDataMapper_Adapter_Interface $adapter)
 	{
 		$this->adapter = $adapter;
+	}
+	
+	/**
+	 * Called from mapper's select() function
+	 * 
+	 * @param mixed $fields (optional)
+	 * @param string $table Table name
+	 * @return string
+	 */
+	public function select($fields = "*", $table)
+	{
+		$this->select = "SELECT " . (is_array($fields) ? implode(', ', $fields) : $fields);
+		$this->from($table);
 	}
 	
 	
@@ -220,152 +232,9 @@ class phpDataMapper_Query implements phpDataMapper_Query_Interface, Countable, I
 	public function limit($limit = 20, $offset = null)
 	{
 		if($this->activeQuery instanceof phpDataMapper_Query_Interface) {
-			$this->activeQuery->limit($limit, $offset);
+			$this->adapterQuery->limit($limit, $offset);
 		}
 		return $this;
-	}
-	
-	
-	/**
-	 * Save related rows of data
-	 */
-	protected function saveRelatedRowsFor($row, array $fillData = array())
-	{
-		$relationColumns = $this->getRelationsFor($row);
-		foreach($row->getData() as $field => $value) {
-			if($relationColumns && array_key_exists($field, $relationColumns) && (is_array($value) || is_object($value))) {
-				foreach($value as $relatedRow) {
-					// Determine relation object
-					if($value instanceof phpDataMapper_Model_Relation) {
-						$relatedObj = $value;
-					} else {
-						$relatedObj = $relationColumns[$field];
-					}
-					$relatedMapper = $relatedObj->getMapper();
-					
-					// Row object
-					if($relatedRow instanceof phpDataMapper_Model_Row) {
-						$relatedRowObj = $relatedRow;
-						
-					// Associative array
-					} elseif(is_array($relatedRow)) {
-						$relatedRowObj = new $this->rowClass($relatedRow);
-					}
-					
-					// Set column values on row only if other data has been updated (prevents queries for unchanged existing rows)
-					if(count($relatedRowObj->getDataModified()) > 0) {
-						$fillData = array_merge($relatedObj->getForeignKeys(), $fillData);
-						$relatedRowObj->setData($fillData);
-					}
-					
-					// Save related row
-					$relatedMapper->save($relatedRowObj);
-				}
-			}
-		}
-	}
-	
-	
-	/**
-	 * Save result object
-	 */
-	public function save(phpDataMapper_Model_Row $row)
-	{
-		// Run validation
-		if($this->validate($row)) {
-			$pk = $this->getPrimaryKey($row);
-			// No primary key, insert
-			if(empty($pk)) {
-				$result = $this->insert($row);
-			// Has primary key, update
-			} else {
-				$result = $this->update($row);
-			}
-		} else {
-			$result = false;
-		}
-		
-		return $result;
-	}
-	
-	
-	/**
-	 * Insert given row object with set properties
-	 */
-	public function insert(phpDataMapper_Model_Row $row)
-	{
-		$data = array();
-		$rowData = $row->getData();
-		foreach($rowData as $field => $value) {
-			if($this->fieldExists($field)) {
-				// Empty values will be NULL (easier to be handled by databases)
-				$data[$field] = $this->isEmpty($value) ? null : $value;
-			}
-		}
-		
-		// Ensure there is actually data to update
-		if(count($data) > 0) {
-			$result = $this->adapter->insert($this->getTable(), $data);
-			// Update primary key on row
-			$pkField = $this->getPrimaryKeyField();
-			$row->$pkField = $result;
-		} else {
-			$result = false;
-		}
-		
-		// Save related rows
-		if($result) {
-			$this->saveRelatedRowsFor($row);
-		}
-		
-		return $result;
-	}
-	
-	
-	/**
-	 * Update given row object
-	 */
-	public function update(phpDataMapper_Model_Row $row)
-	{
-		// Ensure fields exist to prevent errors
-		$binds = array();
-		foreach($row->getDataModified() as $field => $value) {
-			if($this->fieldExists($field)) {
-				// Empty values will be NULL (easier to be handled by databases)
-				$binds[$field] = $this->isEmpty($value) ? null : $value;
-			}
-		}
-		
-		// Handle with adapter
-		$result = $this->adapter->update($this->getTable(), $binds, array($this->getPrimaryKeyField() => $this->getPrimaryKey($row)));
-		
-		// Save related rows
-		if($result) {
-			$this->saveRelatedRowsFor($row);
-		}
-		
-		return $result;
-	}
-	
-	
-	/**
-	 * Destroy/Delete given row object
-	 */
-	public function destroy(phpDataMapper_Model_Row $row)
-	{
-		$conditions = array($this->getPrimaryKeyField() => $this->getPrimaryKey($row));
-		return $this->delete($conditions);
-	}
-	
-	
-	/**
-	 * Delete rows matching given conditions
-	 *
-	 * @param array $conditions Array of conditions in column => value pairs
-	 */
-	public function delete(array $conditions)
-	{
-		return $this->adapter->delete($this->table, $conditions);
 	}
 	
 	
