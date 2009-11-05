@@ -33,6 +33,10 @@ class AdapterMysqlTestCase extends PHPUnit_Framework_TestCase {
 		$this->sampleNewsMapper = new SampleNews($this->sampleAdapter);
 		$this->sampleNewsMapper->migrate();
 	}
+	public function __destruct()
+	{
+		$this->sampleAdapter->dropTable(); 
+	}
 	public function setUp() {}
 	public function tearDown() {}
 	
