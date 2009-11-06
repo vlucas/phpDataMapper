@@ -253,7 +253,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 */
 	public function create($source, array $data)
 	{
-		$binds = $this->getBindsFromConditions($data);
+		$binds = $this->statementBinds($data);
 		
 		// build the statement
 		$sql = "INSERT INTO " . $table .
@@ -287,19 +287,29 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	/**
 	 * Build a select statement in SQL
 	 * Can be overridden by adapters for custom syntax
+	 *
+	 * @todo Add support for JOINs
 	 */
 	public function read(phpDataMapper_Query $query)
 	{
+		$conditions = $this->statementConditions($query->conditions);
+		$orderBy = array();
+		if($query->orderBy) {
+			foreach($query->orderBy as $oField => $oSort) {
+				$orderBy[] = $oField . " " . $oSort;
+			}
+		}
+		
 		$sql = "
-			SELECT " . $this->statementColumns() . "
-			#{FROM ?}.table
-			#{?}.joins
-			#{WHERE ?}.conditions
-			#{GROUP BY ?}.groups
-			#{ORDER BY ?}.sorts
+			SELECT " . $this->statementColumns($query->fields) . "
+			FROM " . $query->source . "
+			" . ($conditions ? 'WHERE ' . $conditions : '') . "
+			" . ($query->groupBy ? 'GROUP BY ' . implode(', ', $query->groupBy) : '') . "
+			" . ($orderBy ? 'ORDER BY ' . implode(', ', $orderBy) : '') . "
 			";
+		
+		// Get result set
 	}
-	
 	
 	/**
 	 * Update given row object
@@ -364,15 +374,15 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 */
 	public function delete($table, array $data)
 	{
-		$binds = $this->getBindsFromConditions($data);
+		$binds = $this->statementBinds($data);
 		
 		$sql = "DELETE FROM " . $table . "";
-		$sql = $this->getSqlFromConditions($sql, $data);
+		$sql .= $this->statementConditions($data);
 		
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql, $binds);
 		
-		$stmt = $this->prepare($sql, $this->getBindsFromConditions($data));
+		$stmt = $this->prepare($sql, $this->statementsBinds($data));
 		if($stmt) {
 			// Execute
 			if($stmt->execute($binds)) {
@@ -416,10 +426,21 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	
 	
 	/**
+	 * Return fields as a string for a query statement
+	 */
+	public function statementFields(array $fields = array())
+	{
+		return count($fields) > 0 ? implode(', ', $fields) : "*";
+	}
+	
+	
+	/**
 	 * Builds an SQL string given conditions
 	 */
-	protected function getSqlFromConditions($sql, array $conditions)
+	public function statementConditions(array $conditions = array())
 	{
+		if(count($conditions) == 0) { return; }
+		
 		$sqlWhere = array();
 		$defaultColOperators = array(0 => '', 1 => '=');
 		$ci = 0;
@@ -450,7 +471,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			$ci++;
 		}
 		
-		$sql .= empty($sqlWhere) ? "" : " WHERE " . implode(' AND ', $sqlWhere);
+		$sql = empty($sqlWhere) ? "" : " WHERE " . implode(' AND ', $sqlWhere);
 		return $sql;
 	}
 	
@@ -458,8 +479,10 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	/**
 	 * Returns array of binds to pass to query function
 	 */
-	protected function getBindsFromConditions(array $conditions)
+	public function statementBinds(array $conditions = array())
 	{
+		if(count($conditions) == 0) { return; }
+		
 		$binds = array();
 		$ci = 0;
 		foreach($conditions as $column => $value) {
@@ -477,6 +500,57 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			$ci++;
 		}
 		return $binds;
+	}
+	
+	
+	/**
+	 * Return result set for current query
+	 */
+	public function getResultSet()
+	{
+		$mapper = $this->mapper;
+		$stmt = $this->getAdapterRead()->prepare($sql);
+		
+		if($stmt instanceof PDOStatement) {
+			$results = array();
+			$resultsIdentities = array();
+			
+			// Set object to fetch results into
+			$stmt->setFetchMode(PDO::FETCH_CLASS, $mapper->rowClass, array());
+			
+			// Fetch all results into new DataMapper_Result class
+			while($row = $stmt->fetch(PDO::FETCH_CLASS)) {
+				
+				// Load relations for this row
+				$relations = $mapper->getRelationsFor($row);
+				if($relations && is_array($relations) && count($relations) > 0) {
+					foreach($relations as $relationCol => $relationObj) {
+						$row->$relationCol = $relationObj;
+					}
+				}
+				
+				// Store in array for ResultSet
+				$results[] = $row;
+				
+				// Store primary key of each unique record in set
+				$pk = $this->getPrimaryKey($row);
+				if(!in_array($pk, $resultsIdentities) && !empty($pk)) {
+					$resultsIdentities[] = $pk;
+				}
+				
+				// Mark row as loaded
+				$row->loaded(true);
+			}
+			// Ensure set is closed
+			$stmt->closeCursor();
+			
+			return new $mapper->resultSetClass($results, $resultsIdentities);
+			
+		} else {
+			$mapper->addError(__METHOD__ . " - Unable to execute query [" . $sql . "] - " . implode(' | ', $this->getAdapterRead()->errorInfo()));
+			return array();
+			//throw new $this->exceptionClass(__METHOD__ . " expected PDOStatement object");
+		}
 	}
 	
 	

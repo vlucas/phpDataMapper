@@ -273,7 +273,7 @@ class phpDataMapper_Base
 	public function first(array $conditions = array(), array $orderBy = array())
 	{
 		$query = $this->select()->where($conditions)->orderBy($orderBy)->limit(1);
-		$rows = $this->query($query->sql(), $query->getParameters());
+		$rows = $this->getAdapterSlave()->read($query);
 		if($rows) {
 			return $rows->first();
 		} else {
@@ -319,7 +319,7 @@ class phpDataMapper_Base
 	 */
 	public function select($fields = "*")
 	{
-		$query = new $this->queryClass($this->getAdapterSlave());
+		$query = new $this->queryClass($this);
 		$query->select($fields, $this->source);
 		return $query;
 	}
@@ -616,7 +616,7 @@ class phpDataMapper_Base
 		
 		// Ensure required class was loaded
 		if(!$loaded) {
-			throw new $this->exceptionClass(__METHOD__ . " Failed: Unable to load class '" . $className . "'!");
+			throw new Exception(__METHOD__ . " Failed: Unable to load class '" . $className . "'!");
 		}
 		
 		return $loaded;

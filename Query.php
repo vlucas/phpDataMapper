@@ -12,7 +12,7 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	
 	// Storage for query properties
 	public $fields = array();
-	public $sourceName;
+	public $source;
 	public $conditions = array();
 	public $orderBy = array();
 	public $groupBy = array();
@@ -33,25 +33,25 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	 * Called from mapper's select() function
 	 * 
 	 * @param mixed $fields (optional)
-	 * @param string $sourceName Data source name
+	 * @param string $source Data source name
 	 * @return string
 	 */
-	public function select($fields = "*", $sourceName = null)
+	public function select($fields = "*", $source = null)
 	{
 		$this->fields = (is_string($fields) ? explode(',', $fields) : $fields);
-		$this->from($sourceName);
+		$this->from($source);
 	}
 	
 	
 	/**
 	 * From
 	 *
-	 * @param string $sourceName Name of the data source to perform a query on
+	 * @param string $source Name of the data source to perform a query on
 	 * @todo Support multiple sources/joins
 	 */
-	public function from($sourceName = null)
+	public function from($source = null)
 	{
-		$this->sourceName = $sourceName;
+		$this->source = $source;
 		return $this;
 	}
 	
@@ -209,69 +209,6 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 		// Build SQL
 		// Prepared Statement
 		// Return ResultSet
-		return $this->mapper->getAdapter()->read($this);
-	}
-	
-	
-	/**
-	 * Get result set for given PDO Statement
-	 */
-	public function getResultSet($stmt)
-	{
-		if($stmt instanceof PDOStatement) {
-			$results = array();
-			$resultsIdentities = array();
-			
-			// Set object to fetch results into
-			$stmt->setFetchMode(PDO::FETCH_CLASS, $this->rowClass, array());
-			
-			// Fetch all results into new DataMapper_Result class
-			while($row = $stmt->fetch(PDO::FETCH_CLASS)) {
-				
-				// Load relations for this row
-				$relations = $this->getRelationsFor($row);
-				if($relations && is_array($relations) && count($relations) > 0) {
-					foreach($relations as $relationCol => $relationObj) {
-						$row->$relationCol = $relationObj;
-					}
-				}
-				
-				// Store in array for ResultSet
-				$results[] = $row;
-				
-				// Store primary key of each unique record in set
-				$pk = $this->getPrimaryKey($row);
-				if(!in_array($pk, $resultsIdentities) && !empty($pk)) {
-					$resultsIdentities[] = $pk;
-				}
-				
-				// Mark row as loaded
-				$row->loaded(true);
-			}
-			// Ensure set is closed
-			$stmt->closeCursor();
-			
-			return new $this->resultSetClass($results, $resultsIdentities);
-			
-		} else {
-			return array();
-			//throw new $this->exceptionClass(__METHOD__ . " expected PDOStatement object");
-		}
-	}
-	
-	
-	/**
-	 * Bind array of field/value data to given statement
-	 *
-	 * @param PDOStatement $stmt
-	 * @param array $binds
-	 */
-	protected function bindValues($stmt, array $binds)
-	{
-		// Bind each value to the given prepared statement
-		foreach($binds as $field => $value) {
-			$stmt->bindValue($field, $value);
-		}
-		return true;
+		return $this->mapper->getAdapterRead()->read($this);
 	}
 }
