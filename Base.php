@@ -15,12 +15,12 @@ class phpDataMapper_Base
 	// Class Names for required classes - Here so they can be easily overridden
 	protected $rowClass = 'phpDataMapper_Row';
 	protected $queryClass = 'phpDataMapper_Query';
-	protected $resultSetClass = 'phpDataMapper_Query_ResultSet';
+	protected $resultSetClass = 'phpDataMapper_Query_Set';
 	protected $exceptionClass = 'phpDataMapper_Exception';
 	protected $validationClass = 'phpDataMapper_Validation';
 	
-	// Table setup info
-	protected $table;
+	// Data source setup info
+	protected $source;
 	protected $fields = array();
 	protected $primaryKey;
 	/**
@@ -49,6 +49,9 @@ class phpDataMapper_Base
 	// Array of error messages and types
 	protected $errors = array();
 	
+	// Query log
+	protected static $queryLog = array();
+	
 	
 	/**
 	 *	Constructor Method
@@ -73,8 +76,8 @@ class phpDataMapper_Base
 		}
 		
 		// Ensure table has been defined
-		if(!$this->table) {
-			throw new $this->exceptionClass("Error: Table name must be defined - please define \$table variable.");
+		if(!$this->source) {
+			throw new $this->exceptionClass("Error: Source name must be defined - please define \$source variable. This can be a database table name or a file name, depending on your adapter.");
 		}
 		
 		// Ensure fields have been defined for current table
@@ -84,7 +87,7 @@ class phpDataMapper_Base
 		
 		// Find and store primary key field
 		foreach($this->fields as $field => $options) {
-			if(array_key_exists('primary', $options)) {
+			if(isset($options['primary']) && $options['primary'] === true) {
 				$this->primaryKey = $field;
 			}
 		}
@@ -101,11 +104,24 @@ class phpDataMapper_Base
 	
 	
 	/**
-	 * Get value of primary key for given row result
+	 * Get adapter object that will serve as the 'slave' for reads
 	 */
-	public function getTable()
+	public function getAdapterSlave()
 	{
-		return $this->table;
+		if($this->adapterSlave) {
+			return $this->adapterSlave;
+		} else {
+			return $this->adapter;
+		}
+	}
+	
+	
+	/**
+	 * Get name of the data source
+	 */
+	public function getSourceName()
+	{
+		return $this->source;
 	}
 	
 	
@@ -303,15 +319,9 @@ class phpDataMapper_Base
 	 */
 	public function select($fields = "*")
 	{
-		$adapterName = get_class($this->adapter);
-		$adapterClass = $adapterName . "_Query";
-		if($this->loadClass($adapterClass)) {
-			$query = new $this->queryClass($this->adapter);
-			$query->select($fields, $this->table);
-			return $query;
-		} else {
-			throw new $this->exceptionClass(__METHOD__ . " Error: Unable to load new query builder for adapter: '" . $adapterName . "'");
-		}
+		$query = new $this->queryClass($this->getAdapterSlave());
+		$query->select($fields, $this->source);
+		return $query;
 	}
 	
 	
@@ -394,7 +404,7 @@ class phpDataMapper_Base
 		
 		// Ensure there is actually data to update
 		if(count($data) > 0) {
-			$result = $this->adapter->insert($this->getTable(), $data);
+			$result = $this->adapter->create($this->getSourceName(), $data);
 			// Update primary key on row
 			$pkField = $this->getPrimaryKeyField();
 			$row->$pkField = $result;
@@ -426,7 +436,7 @@ class phpDataMapper_Base
 		}
 		
 		// Handle with adapter
-		$result = $this->adapter->update($this->getTable(), $binds, array($this->getPrimaryKeyField() => $this->getPrimaryKey($row)));
+		$result = $this->adapter->update($this->getSourceName(), $binds, array($this->getPrimaryKeyField() => $this->getPrimaryKey($row)));
 		
 		// Save related rows
 		if($result) {
@@ -454,7 +464,7 @@ class phpDataMapper_Base
 	 */
 	public function delete(array $conditions)
 	{
-		return $this->adapter->delete($this->table, $conditions);
+		return $this->adapter->delete($this->getSourceName(), $conditions);
 	}
 	
 	
@@ -463,7 +473,7 @@ class phpDataMapper_Base
 	 * Should delete all rows and reset serial/auto_increment keys to 0
 	 */
 	public function truncateTable() {
-		return $this->adapter->truncateTable($this->getTable());
+		return $this->adapter->truncateTable($this->getSourceName());
 	}
 	
 	
@@ -472,7 +482,7 @@ class phpDataMapper_Base
 	 * Destructive and dangerous - drops entire table and all data
 	 */
 	public function dropTable() {
-		return $this->adapter->dropTable($this->getTable());
+		return $this->adapter->dropTable($this->getSourceName());
 	}
 	
 	
@@ -507,7 +517,7 @@ class phpDataMapper_Base
 	 */
 	public function migrate()
 	{
-		return $this->getAdapter()->migrate($this->getTable(), $this->fields);
+		return $this->getAdapter()->migrate($this->getSourceName(), $this->fields);
 	}
 	
 	
@@ -620,7 +630,7 @@ class phpDataMapper_Base
 	{
 		echo "<p>Executed " . $this->getQueryCount() . " queries:</p>";
 		echo "<pre>\n";
-		print_r(phpDataMapper_Query::$queryLog);
+		print_r(self::$queryLog);
 		echo "</pre>\n";
 	}
 	
@@ -632,7 +642,22 @@ class phpDataMapper_Base
 	 */
 	public function getQueryCount()
 	{
-		return count(phpDataMapper_Query::$queryLog);
+		return count(self::$queryLog);
+	}
+	
+	
+	/**
+	 * Log query
+	 *
+	 * @param string $sql
+	 * @param array $data
+	 */
+	public static function logQuery($sql, $data = null)
+	{
+		self::$queryLog[] = array(
+			'query' => $sql,
+			'data' => $data
+			);
 	}
 }
 
