@@ -11,7 +11,7 @@ date_default_timezone_set('America/Chicago');
 
 // Sample news mapper
 class SampleNews extends phpDataMapper_Base {
-	protected $table = 'test_news';
+	protected $source = 'test_news';
 	protected $fields = array(
 		'id' => array('type' => 'int', 'primary' => true),
 		'title' => array('type' => 'string', 'required' => true),
