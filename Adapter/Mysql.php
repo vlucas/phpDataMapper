@@ -1,5 +1,4 @@
 <?php
-require_once(dirname(__FILE__) . '/Abstract.php');
 /**
  * $Id$
  *
@@ -7,7 +6,7 @@ require_once(dirname(__FILE__) . '/Abstract.php');
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
-class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_Abstract
+class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 {
 	// Format for date columns, formatted for PHP's date() function
 	protected $format_date = "Y-m-d";
@@ -45,7 +44,7 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_Abstract
 	
 	
 	/**
-	 * Set database engine (InnoDB, MyISAM *shudder*, etc)
+	 * Set database engine (InnoDB, MyISAM, etc)
 	 */
 	public function setEngine($engine)
 	{
@@ -283,21 +282,5 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_Abstract
 		$syntax .= "\n) ENGINE=" . $this->engine . " DEFAULT CHARSET=" . $this->charset . " COLLATE=" . $this->collate . ";";
 		
 		return $syntax;
-	}
-	
-	
-	/**
-	 * Genereate select SQL from query object
-	 */
-	public function selectSql()
-	{	
-		$sql = "
-			SELECT #{?}.fields
-			#{FROM ?}.table
-			#{?}.joins
-			#{WHERE ?}.conditions
-			#{GROUP BY ?}.groups
-			#{ORDER BY ?}.sorts
-			";
 	}
 }

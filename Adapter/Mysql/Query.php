@@ -8,6 +8,8 @@
  */
 class phpDataMapper_Adapter_Mysql_Query implements phpDataMapper_Query_Interface
 {
+	protected $adapter;
+	
 	protected $fields = array();
 	protected $table;
 	protected $where = "";
@@ -26,7 +28,11 @@ class phpDataMapper_Adapter_Mysql_Query implements phpDataMapper_Query_Interface
 	 * @param object $adapter
 	 * @return string
 	 */
-	public function __construct(phpDataMapper_Adapter_Interface $adapter);
+	public function __construct(phpDataMapper_Adapter_Interface $adapter)
+	{
+		$this->adapter = $adapter;
+	}
+	
 	
 	/**
 	 * Called from mapper's select() function
