@@ -8,33 +8,155 @@
  */
 class phpDataMapper_Query implements Countable, IteratorAggregate
 {
-	protected $adapter;
+	protected $mapper;
 	
-	// Array of all queries that have been executed for any DataMapper (static)
-	protected static $queryLog = array();
+	// Storage for query properties
+	public $fields = array();
+	public $sourceName;
+	public $conditions = array();
+	public $orderBy = array();
+	public $groupBy = array();
+	public $limit;
+	public $limitOffset;
 	
 	
 	/**
 	 *	Constructor Method
 	 */
-	public function __construct(phpDataMapper_Adapter_Interface $adapter)
+	public function __construct(phpDataMapper_Base $mapper)
 	{
-		$this->adapter = $adapter;
+		$this->mapper = $mapper;
 	}
+	
 	
 	/**
 	 * Called from mapper's select() function
 	 * 
 	 * @param mixed $fields (optional)
-	 * @param string $table Table name
+	 * @param string $sourceName Data source name
 	 * @return string
 	 */
-	public function select($fields = "*", $table)
+	public function select($fields = "*", $sourceName = null)
 	{
-		$this->select = "SELECT " . (is_array($fields) ? implode(', ', $fields) : $fields);
-		$this->from($table);
+		$this->fields = (is_string($fields) ? explode(',', $fields) : $fields);
+		$this->from($sourceName);
 	}
 	
+	
+	/**
+	 * From
+	 *
+	 * @param string $sourceName Name of the data source to perform a query on
+	 * @todo Support multiple sources/joins
+	 */
+	public function from($sourceName = null)
+	{
+		$this->sourceName = $sourceName;
+		return $this;
+	}
+	
+	
+	/**
+	 * Find records with given conditions
+	 * If all parameters are empty, find all records
+	 *
+	 * @param array $conditions Array of conditions in column => value pairs
+	 */
+	public function all(array $conditions = array())
+	{
+		return $this->where($conditions);
+	}
+	
+	
+	/**
+	 * WHERE conditions
+	 * 
+	 * @param array $conditions Array of conditions for this clause
+	 * @param string $type Keyword that will separate each condition - "AND", "OR"
+	 * @param string $setType Keyword that will separate the whole set of conditions - "AND", "OR"
+	 */
+	public function where(array $conditions = array(), $type = "AND", $setType = "AND")
+	{
+		$where = array();
+		$where['conditions'] = $conditions;
+		$where['type'] = $type;
+		$where['setType'] = $setType;
+		
+		$this->conditions[] = $where;
+		return $this;
+	}
+	public function orWhere(array $conditions = array(), $type = "AND")
+	{
+		return $this->where($conditions, $type, "OR");
+	}
+	public function andWhere(array $conditions = array(), $type = "AND")
+	{
+		return $this->where($conditions, $type, "AND");
+	}
+	
+	
+	/**
+	 * ORDER BY columns
+	 *
+	 * @param array $fields Array of field names to use for sorting
+	 * @return $this
+	 */
+	public function orderBy($fields = array())
+	{
+		$orderBy = array();
+		$defaultSort = "ASC";
+		if(is_array($fields)) {
+			foreach($fields as $field => $sort) {
+				// Numeric index - field as array entry, not key/value pair
+				if(is_numeric($field)) {
+					$field = $sort;
+					$sort = $defaultSort;
+				}
+				
+				$this->orderBy[$field] = strtoupper($sort);
+			}
+		} else {
+			$this->orderBy[$fields] = $defaultSort;
+		}
+		return $this;
+	}
+	
+	
+	/**
+	 * GROUP BY clause
+	 *
+	 * @param array $fields Array of field names to use for grouping
+	 * @return $this
+	 */
+	public function groupBy(array $fields = array())
+	{
+		$groupBy = array();
+		foreach($fields as $field) {
+			$this->groupBy[] = $field;
+		}
+		return $this;
+	}
+	
+	
+	/**
+	 * Limit executed query to specified amount of rows
+	 * Implemented at adapter-level for databases that support it
+	 * 
+	 * @param int $limit Number of records to return
+	 * @param int $offset Row to start at for limited result set
+	 */
+	public function limit($limit = 20, $offset = null)
+	{
+		$this->limit = $limit;
+		$this->limitOffset = $offset;
+		return $this;
+	}
+	
+	
+	
+	
+	
+	// ===================================================================
 	
 	/**
 	 * SPL Countable function
@@ -54,11 +176,11 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	 * SPL IteratorAggregate function
 	 * Called automatically when attribute is used in a 'foreach' loop
 	 *
-	 * @return phpDataMapper_Model_ResultSet
+	 * @return phpDataMapper_Query_Set
 	 */
 	public function getIterator()
 	{
-		// Execute query and return ResultSet for iteration
+		// Execute query and return result set for iteration
 		$result = $this->execute();
 		return ($result !== false) ? $result : array();
 	}
@@ -84,19 +206,10 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	 */
 	public function execute()
 	{
-		// Use cached results if found (previous count() or other internal call)
-		if($this->activeQueryResults) {
-			$results = $this->activeQueryResults;
-		} else {
-			if($this->activeQuery instanceof phpDataMapper_Query_Interface) {
-				$results = $this->query($this->activeQuery->sql(), $this->activeQuery->getParameters());
-				$this->activeQueryResults = $results;
-			} else {
-				$results = array();
-			}
-		}
-		
-		return $results;
+		// Build SQL
+		// Prepared Statement
+		// Return ResultSet
+		return $this->mapper->getAdapter()->read($this);
 	}
 	
 	
@@ -148,97 +261,6 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	
 	
 	/**
-	 * Find records with given conditions
-	 * If all parameters are empty, find all records
-	 *
-	 * @param array $conditions Array of conditions in column => value pairs
-	 * 
-	 * @todo Implement extra $clauses array
-	 */
-	public function all(array $conditions = array())
-	{
-		// Clear previous active query if found
-		if($this->activeQueryResults) {
-			$results = $this->clearActiveQuery();
-		}
-		
-		// Build on active query if it has not been executed yet
-		if($this->activeQuery instanceof phpDataMapper_Database_Query_Interface) {
-			$this->activeQuery->where($conditions)->orderBy($orderBy);
-		} else {
-			// New active query
-			$this->activeQuery = $this->select()->where($conditions)->orderBy($orderBy);
-		}
-		return $this;
-	}
-	
-	
-	/**
-	 * Find records with custom SQL query
-	 *
-	 * @param string $sql SQL query to execute
-	 * @param array $binds Array of bound parameters to use as values for query
-	 * @throws phpDataMapper_Exception
-	 */
-	public function query($sql, array $binds = array())
-	{
-		// Add query to log
-		self::logQuery($sql, $binds);
-		
-		// Prepare and execute query
-		if($stmt = $this->adapter->prepare($sql)) {
-			$results = $stmt->execute($binds);
-			if($results) {
-				$r = $this->getResultSet($stmt);
-			} else {
-				$r = false;
-			}
-			
-			return $r;
-		} else {
-			throw new $this->exceptionClass(__METHOD__ . " Error: Unable to execute SQL query - failed to create prepared statement from given SQL");
-		}
-		
-	}
-	
-	
-	/**
-	 * Begin a new database query - get query builder
-	 * Acts as a kind of factory to get the current adapter's query builder object
-	 * 
-	 * @param mixed $fields String for single field or array of fields
-	 */
-	public function select($fields = "*")
-	{
-		$adapterName = get_class($this->adapter);
-		$adapterClass = $adapterName . "_Query";
-		if($this->loadClass($adapterClass)) {
-			return new $adapterClass($fields, $this->table);
-		} else {
-			throw new $this->exceptionClass(__METHOD__ . " Error: Unable to load new query builder for adapter: '" . $adapterName . "'");
-		}
-	}
-	
-	
-	/**
-	 * Limit executed query to specified amount of rows
-	 * Implemented at adapter-level for databases that support it
-	 * 
-	 * @param int $limit Number of records to return
-	 * @param int $offset Row to start at for limited result set
-	 *
-	 * @todo Implement limit functionality for database adapters that do not support any kind of LIMIT clause
-	 */
-	public function limit($limit = 20, $offset = null)
-	{
-		if($this->activeQuery instanceof phpDataMapper_Query_Interface) {
-			$this->adapterQuery->limit($limit, $offset);
-		}
-		return $this;
-	}
-	
-	
-	/**
 	 * Bind array of field/value data to given statement
 	 *
 	 * @param PDOStatement $stmt
@@ -251,20 +273,5 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 			$stmt->bindValue($field, $value);
 		}
 		return true;
-	}
-	
-	
-	/**
-	 * Log query
-	 *
-	 * @param string $sql
-	 * @param array $data
-	 */
-	public static function logQuery($sql, $data = null)
-	{
-		self::$queryLog[] = array(
-			'query' => $sql,
-			'data' => $data
-			);
 	}
 }
