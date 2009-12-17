@@ -1,12 +1,12 @@
 <?php
 /**
- * DataMapper result class - each row is fetched into this object
+ * DataMapper entity class - each item is fetched into this object
  * 
  * @package phpDataMapper
  * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
-class phpDataMapper_Row
+class phpDataMapper_Entity
 {
 	protected $_loaded;
 	protected $_data = array();

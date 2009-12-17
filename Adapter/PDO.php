@@ -45,6 +45,15 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			// Establish connection
 			try {
 				$this->connection = new PDO($this->getDsn(), $this->username, $this->password, $this->options);
+			/*
+			} catch(PDOException $e) {
+				if($e->getCode() == 1049) {
+					// Database not found, try connection with no db specified
+					$this->connection = new PDO($this->getDsn(), $this->username, $this->password, $this->options);
+				} else {
+					throw new phpDataMapper_Exception($e->getMessage());
+				}
+			*/
 			} catch(Exception $e) {
 				throw new phpDataMapper_Exception($e->getMessage());
 			}
@@ -417,6 +426,35 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 */
 	public function dropTable($table) {
 		$sql = "DROP TABLE " . $table;
+		
+		// Add query to log
+		phpDataMapper_Base::logQuery($sql);
+		
+		return $this->exec($sql);
+	}
+	
+	
+	/**
+	 * Create a database
+ 	 * Will throw errors if user does not have proper permissions
+	 */
+	public function createDatabase($database) {
+		$sql = "CREATE DATABASE " . $database;
+		
+		// Add query to log
+		phpDataMapper_Base::logQuery($sql);
+		
+		return $this->exec($sql);
+	}
+	
+	
+	/**
+	 * Drop a database table
+	 * Destructive and dangerous - drops entire table and all data
+	 * Will throw errors if user does not have proper permissions
+	 */
+	public function dropDatabase($table) {
+		$sql = "DROP DATABASE " . $table;
 		
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql);

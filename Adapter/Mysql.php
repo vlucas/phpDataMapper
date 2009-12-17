@@ -16,7 +16,9 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 	protected $engine = 'InnoDB';
 	protected $charset = 'utf8';
 	protected $collate = 'utf8_unicode_ci';
+	
 	// Map datamapper field types to actual database adapter types
+	// @todo Have to improve this to allow custom types, callbacks, and validation
 	protected $fieldTypeMap = array(
 		'string' => 'varchar',
 		'text' => 'text',
@@ -27,7 +29,8 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 		'float' => 'float',
 		'double' => 'double',
 		'date' => 'date',
-		'datetime' => 'datetime'
+		'datetime' => 'datetime',
+		'time' => 'time'
 		);
 	
 	

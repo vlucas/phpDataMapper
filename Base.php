@@ -13,7 +13,7 @@ class phpDataMapper_Base
 	protected $adapterSlave;
 	
 	// Class Names for required classes - Here so they can be easily overridden
-	protected $rowClass = 'phpDataMapper_Row';
+	protected $rowClass = 'phpDataMapper_Entity';
 	protected $queryClass = 'phpDataMapper_Query';
 	protected $resultSetClass = 'phpDataMapper_Query_Set';
 	protected $exceptionClass = 'phpDataMapper_Exception';
