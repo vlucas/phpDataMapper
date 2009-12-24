@@ -482,31 +482,33 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		$sqlWhere = array();
 		$defaultColOperators = array(0 => '', 1 => '=');
 		$ci = 0;
-		foreach($conditions as $column => $value) {
-			// Column name with comparison operator
-			$colData = explode(' ', $column);
-			$col = $colData[0];
-			
-			// Array of values, assume IN clause
-			if(is_array($value)) {
-				$sqlWhere[] = $col . " IN('" . implode("', '", $value) . "')";
-			
-			// NULL value
-			} elseif(is_null($value)) {
-				$sqlWhere[] = $col . " IS NULL";
-			
-			// Standard string value
-			} else {
-				$colComparison = isset($colData[1]) ? $colData[1] : '=';
-				$columnSql = $col . ' ' . $colComparison;
+		foreach($conditions as $condition) {
+			foreach($condition['conditions'] as $column => $value) {
+				// Column name with comparison operator
+				$colData = explode(' ', $column);
+				$col = $colData[0];
 				
-				// Add to binds array and add to WHERE clause
-				$colParam = str_replace('.', '_', $col) . $ci;
-				$sqlWhere[] = $columnSql . " :" . $colParam . "";
+				// Array of values, assume IN clause
+				if(is_array($value)) {
+					$sqlWhere[] = $col . " IN('" . implode("', '", $value) . "')";
+				
+				// NULL value
+				} elseif(is_null($value)) {
+					$sqlWhere[] = $col . " IS NULL";
+				
+				// Standard string value
+				} else {
+					$colComparison = isset($colData[1]) ? $colData[1] : '=';
+					$columnSql = $col . ' ' . $colComparison;
+					
+					// Add to binds array and add to WHERE clause
+					$colParam = str_replace('.', '_', $col) . $ci;
+					$sqlWhere[] = $columnSql . " :" . $colParam . "";
+				}
+				
+				// Increment ensures column name distinction
+				$ci++;
 			}
-			
-			// Increment ensures column name distinction
-			$ci++;
 		}
 		
 		$sql = empty($sqlWhere) ? "" : " WHERE " . implode(' AND ', $sqlWhere);
