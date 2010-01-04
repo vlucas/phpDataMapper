@@ -231,9 +231,9 @@ class phpDataMapper_Database_Adapter_Mysql extends phpDataMapper_Database_Adapte
 	 * @param array $fieldInfo Array of field settings
 	 * @return string SQL syntax
 	 */
-	public function migrateSyntaxFieldUpdate($fieldName, array $fieldInfo)
+	public function migrateSyntaxFieldUpdate($fieldName, array $fieldInfo, $add = false)
 	{
-		return "CHANGE `" . $fieldName . "` " . $this->migrateSyntaxFieldCreate($fieldName, $fieldInfo);
+		return ( $add ? "ADD COLUMN " : "MODIFY " ) . $this->migrateSyntaxFieldCreate($fieldName, $fieldInfo);
 	}
 	
 	
@@ -252,7 +252,7 @@ class phpDataMapper_Database_Adapter_Mysql extends phpDataMapper_Database_Adapte
 			CHANGE `title` `title` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL ,
 			CHANGE `status` `status` VARCHAR( 40 ) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT 'draft'
 		*/
-		$syntax = "ALTER TABLE `" . $table . "` (\n";
+		$syntax = "ALTER TABLE `" . $table . "` \n";
 		// Columns
 		$syntax .= implode(",\n", $columnsSyntax);
 		
@@ -280,8 +280,7 @@ class phpDataMapper_Database_Adapter_Mysql extends phpDataMapper_Database_Adapte
 		}
 		
 		// Extra
-		$syntax .= "\n) ENGINE=" . $this->engine . " DEFAULT CHARSET=" . $this->charset . " COLLATE=" . $this->collate . ";";
-		var_dump( $syntax );
+		$syntax .= ";";
 		return $syntax;
 	}
 }
