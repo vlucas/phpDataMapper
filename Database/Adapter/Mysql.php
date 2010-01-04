@@ -172,6 +172,11 @@ class phpDataMapper_Database_Adapter_Mysql extends phpDataMapper_Database_Adapte
 		if($fieldInfo['default'] === null && $isNullable) {
 			$syntax .= " DEFAULT NULL";
 		} elseif($fieldInfo['default'] !== null) {
+			$default = $fieldInfo['default'];
+			// If it's a numerical type and default === false then it should be 0 instead.
+			if ( is_bool($default) && str_replace(array('float','double','int'), '', $fieldInfo['type']) !== $fieldInfo['type'] ) {
+				$default = $default ? 1 : 0;
+			}
 			$syntax .= " DEFAULT '" . $fieldInfo['default'] . "'";
 		}
 		// Extra
