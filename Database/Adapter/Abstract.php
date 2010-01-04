@@ -185,7 +185,7 @@ abstract class phpDataMapper_Database_Adapter_Abstract implements phpDataMapper_
 		
 		if($tableExists) {
 			// Determine missing or changed columns, if any
-			//var_dump($tableColumns);
+			// var_dump($tableColumns);
 			
 			// Update table
 			$this->migrateTableUpdate($table, $formattedFields);
@@ -237,11 +237,11 @@ abstract class phpDataMapper_Database_Adapter_Abstract implements phpDataMapper_
 		// Prepare fields and get syntax for each
 		$columnsSyntax = array();
 		foreach($formattedFields as $fieldName => $fieldInfo) {
-			$columnsSyntax[$fieldName] = $this->migrateSyntaxFieldCreate($fieldName, $fieldInfo);
+			$columnsSyntax[$fieldName] = $this->migrateSyntaxFieldUpdate($fieldName, $fieldInfo);
 		}
 		
 		// Get syntax for table with fields/columns
-		$sql = $this->migrateSyntaxTableCreate($table, $formattedFields, $columnsSyntax);
+		$sql = $this->migrateSyntaxTableUpdate($table, $formattedFields, $columnsSyntax);
 		// Run SQL
 		$this->getConnection()->exec($sql);
 		return true;

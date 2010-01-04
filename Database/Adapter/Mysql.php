@@ -281,7 +281,7 @@ class phpDataMapper_Database_Adapter_Mysql extends phpDataMapper_Database_Adapte
 		
 		// Extra
 		$syntax .= "\n) ENGINE=" . $this->engine . " DEFAULT CHARSET=" . $this->charset . " COLLATE=" . $this->collate . ";";
-		
+		var_dump( $syntax );
 		return $syntax;
 	}
 }
