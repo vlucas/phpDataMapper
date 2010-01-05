@@ -185,16 +185,16 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Get current fields for table
 		$tableExists = false;
 		$tableColumns = $this->getColumnsForTable($table);
-		if($tableColumns) {
-			$tableExists = true;
-		}
 		
 		// Get fields with full array of options
 		$formattedFields = $this->formatFields($fields);
 		
+		if($tableColumns) {
+			$tableExists = true;
+		}
 		if($tableExists) {
 			// Determine missing or changed columns, if any
-			//var_dump($tableColumns);
+			// var_dump($tableColumns);
 			
 			// Update table
 			$this->migrateTableUpdate($table, $formattedFields);
@@ -244,15 +244,39 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		*/
 		
 		// Prepare fields and get syntax for each
+		$tableColumns = $this->getColumnsForTable($table);
+		$updateFormattedFields = array();
+		foreach($tableColumns as $fieldName => $columnInfo) {
+			if(isset($formattedFields[$fieldName])) {
+				// TODO: Need to do a more exact comparison and make this non-mysql specific
+				if ( 
+						$this->fieldTypeMap[$formattedFields[$fieldName]['type']] != $columnInfo['DATA_TYPE'] ||
+						$formattedFields[$fieldName]['default'] !== $columnInfo['COLUMN_DEFAULT']
+					) {
+					$updateFormattedFields[$fieldName] = $formattedFields[$fieldName];
+				}
+				
+				unset($formattedFields[$fieldName]);
+			}
+		}
+		
 		$columnsSyntax = array();
+		
 		foreach($formattedFields as $fieldName => $fieldInfo) {
-			$columnsSyntax[$fieldName] = $this->migrateSyntaxFieldCreate($fieldName, $fieldInfo);
+			$columnsSyntax[$fieldName] = $this->migrateSyntaxFieldUpdate($fieldName, $fieldInfo, true);
+		}
+		
+		foreach($updateFormattedFields as $fieldName => $fieldInfo) {
+			$columnsSyntax[$fieldName] = $this->migrateSyntaxFieldUpdate($fieldName, $fieldInfo, false);
 		}
 		
 		// Get syntax for table with fields/columns
-		$sql = $this->migrateSyntaxTableCreate($table, $formattedFields, $columnsSyntax);
-		// Run SQL
-		$this->getConnection()->exec($sql);
+		if ( !empty($columnsSyntax) ) {
+			$sql = $this->migrateSyntaxTableUpdate($table, $formattedFields, $columnsSyntax);
+			var_dump( $sql );
+			// Run SQL
+			$this->getConnection()->exec($sql);
+		}
 		return true;
 	}
 	
