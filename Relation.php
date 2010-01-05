@@ -32,7 +32,7 @@ abstract class phpDataMapper_Relation
 	/**
 	 * Get related DataMapper object
 	 */
-	public function getMapper()
+	public function mapper()
 	{
 		return $this->mapper;
 	}
@@ -43,7 +43,7 @@ abstract class phpDataMapper_Relation
 	 *
 	 * @return array
 	 */
-	public function getForeignKeys()
+	public function foreignKeys()
 	{
 		return $this->foreignKeys;
 	}
