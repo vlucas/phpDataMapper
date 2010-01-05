@@ -3,43 +3,41 @@
  * Base DataMapper Model
  * 
  * @package phpDataMapper
- * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
+ * @link http://github.com/vlucas/phpDataMapper
  */
 class phpDataMapper_Base
 {
 	// Stored adapter connections
 	protected $adapter;
-	protected $adapterSlave;
+	protected $adapterRead;
 	
 	// Class Names for required classes - Here so they can be easily overridden
-	protected $rowClass = 'phpDataMapper_Entity';
+	protected $entityClass = 'phpDataMapper_Entity';
 	protected $queryClass = 'phpDataMapper_Query';
-	protected $resultSetClass = 'phpDataMapper_Query_Set';
+	protected $collectionClass = 'phpDataMapper_Collection';
 	protected $exceptionClass = 'phpDataMapper_Exception';
-	protected $validationClass = 'phpDataMapper_Validation';
 	
 	// Data source setup info
 	protected $source;
-	protected $fields = array();
 	protected $primaryKey;
 	/**
-	 // EXAMPLE 'fields' definition: 
-	protected $fields = array(
-		'id' => array('type' => 'int', 'primary' => true)
+	=== EXAMPLE fields ===
+	
+	public $id = array('type' => 'int', 'primary' => true);
+	public $name = array('type' => 'string', 'required' => true);
+	public $date_created = array('type' => 'datetime');
+	
+	=== EXAMPLE Relationship associations ===
+	
+	public $comments = array(
+		'type' => 'relation',
+		'relation' => 'HasMany',
+		'mapper' => 'CommentsModel',
+		'where' => array('self.id' => 'foreign.comment_id'),
 		);
-	*/
-	protected $relations = array();
-	/**
-	 // Relationship associations
-	    protected $relations = array(
-	        // Comments
-	        'comments' => array(
-	            'relation' => 'HasMany',
-	            'mapper' => 'CommentsModel',
-	            'foreign_keys' => array('parent' => 'module_id', 'id' => 'module_item_id'),
-				)
-			);
+	
+	======================
 	*/
 	
 	// Class loader instance and action name
@@ -56,37 +54,37 @@ class phpDataMapper_Base
 	/**
 	 *	Constructor Method
 	 */
-	public function __construct(phpDataMapper_Adapter_Interface $adapter, $adapterSlave = null)
+	public function __construct(phpDataMapper_Adapter_Interface $adapter, $adapterRead = null)
 	{
 		$this->adapter = $adapter;
 		
 		// Ensure required classes for minimum activity are loaded
-		$this->loadClass($this->rowClass);
+		$this->loadClass($this->entityClass);
 		$this->loadClass($this->queryClass);
-		$this->loadClass($this->resultSetClass);
+		$this->loadClass($this->collectionClass);
 		$this->loadClass($this->exceptionClass);
 		
 		// Slave adapter if given (usually for reads)
-		if(null !== $adapterSlave) {
-			if($adapterSlave instanceof phpDataMapper_Adapter_Interface) {
-				$this->adapterSlave = $adapterSlave;
+		if(null !== $adapterRead) {
+			if($adapterRead instanceof phpDataMapper_Adapter_Interface) {
+				$this->adapterRead = $adapterRead;
 			} else {
-				throw new InvalidArgumentException("Slave adapter must be an instance of 'phpDataMapper_Database_Adapter_Interface'");
+				throw new InvalidArgumentException("Slave adapter must be an instance of 'phpDataMapper_Adapter_Interface'");
 			}
 		}
 		
 		// Ensure table has been defined
 		if(!$this->source) {
-			throw new $this->exceptionClass("Error: Source name must be defined - please define \$source variable. This can be a database table name or a file name, depending on your adapter.");
+			throw new $this->exceptionClass("Error: Source name must be defined - please define the \$source variable. This can be a database table name, a file name, or a URL, depending on your adapter.");
 		}
 		
 		// Ensure fields have been defined for current table
-		if(!$this->fields || !is_array($this->fields)) {
-			throw new $this->exceptionClass("Error: Fields for current table must be defined");
+		if(!$this->fields()) {
+			throw new $this->exceptionClass("Error: Fields must be defined");
 		}
 		
 		// Find and store primary key field
-		foreach($this->fields as $field => $options) {
+		foreach($this->fields() as $field => $options) {
 			if(isset($options['primary']) && $options['primary'] === true) {
 				$this->primaryKey = $field;
 			}
@@ -97,7 +95,7 @@ class phpDataMapper_Base
 	/**
 	 * Get current adapter object
 	 */
-	public function getAdapter()
+	public function adapter()
 	{
 		return $this->adapter;
 	}
@@ -106,10 +104,10 @@ class phpDataMapper_Base
 	/**
 	 * Get adapter object that will serve as the 'slave' for reads
 	 */
-	public function getAdapterSlave()
+	public function adapterRead()
 	{
-		if($this->adapterSlave) {
-			return $this->adapterSlave;
+		if($this->adapterRead) {
+			return $this->adapterRead;
 		} else {
 			return $this->adapter;
 		}
@@ -119,18 +117,33 @@ class phpDataMapper_Base
 	/**
 	 * Get name of the data source
 	 */
-	public function getSourceName()
+	public function source()
 	{
 		return $this->source;
 	}
 	
 	
 	/**
+	 * Get field names
+	 */
+	public function fields()
+	{
+		$fields = get_object_vars($this);
+		$getFields = create_function('$obj', 'return get_object_vars($obj);');
+		$fields = $getFields($this);
+		foreach($fields as $field => $fieldOpts) {
+			
+		}
+		return $fields;
+	}
+	
+	
+	/**
 	 * Get value of primary key for given row result
 	 */
-	public function getPrimaryKey(phpDataMapper_Row $row)
+	public function primaryKey(phpDataMapper_Entity $row)
 	{
-		$pkField = $this->getPrimaryKeyField();
+		$pkField = $this->primaryKeyField();
 		return $row->$pkField;
 	}
 	
@@ -138,7 +151,7 @@ class phpDataMapper_Base
 	/**
 	 * Get value of primary key for given row result
 	 */
-	public function getPrimaryKeyField()
+	public function primaryKeyField()
 	{
 		return $this->primaryKey;
 	}
@@ -149,7 +162,7 @@ class phpDataMapper_Base
 	 */
 	public function fieldExists($field)
 	{
-		return array_key_exists($field, $this->fields);
+		return array_key_exists($field, $this->fields());
 	}
 	
 	
@@ -160,11 +173,11 @@ class phpDataMapper_Base
 	{
 		// Create new row object
 		if(!$primaryKeyValue) {
-			$row = new $this->rowClass();
+			$row = new $this->entityClass();
 		
 		// Find record by primary key
 		} else {
-			$row = $this->first(array($this->getPrimaryKeyField() => $primaryKeyValue));
+			$row = $this->first(array($this->primaryKeyField() => $primaryKeyValue));
 		}
 		return $row;
 	}
@@ -173,7 +186,7 @@ class phpDataMapper_Base
 	/**
 	 * Load defined relations 
 	 */
-	public function getRelationsFor(phpDataMapper_Row $row)
+	public function getRelationsFor(phpDataMapper_Entity $row)
 	{
 		$relatedColumns = array();
 		if(is_array($this->relations) && count($this->relations) > 0) {
@@ -214,7 +227,7 @@ class phpDataMapper_Base
 			$resultsIdentities = array();
 			
 			// Set object to fetch results into
-			$stmt->setFetchMode(PDO::FETCH_CLASS, $this->rowClass, array());
+			$stmt->setFetchMode(PDO::FETCH_CLASS, $this->entityClass, array());
 			
 			// Fetch all results into new DataMapper_Result class
 			while($row = $stmt->fetch(PDO::FETCH_CLASS)) {
@@ -231,7 +244,7 @@ class phpDataMapper_Base
 				$results[] = $row;
 				
 				// Store primary key of each unique record in set
-				$pk = $this->getPrimaryKey($row);
+				$pk = $this->primaryKey($row);
 				if(!in_array($pk, $resultsIdentities) && !empty($pk)) {
 					$resultsIdentities[] = $pk;
 				}
@@ -242,7 +255,7 @@ class phpDataMapper_Base
 			// Ensure set is closed
 			$stmt->closeCursor();
 			
-			return new $this->resultSetClass($results, $resultsIdentities);
+			return new $this->collectionClass($results, $resultsIdentities);
 			
 		} else {
 			return array();
@@ -256,11 +269,10 @@ class phpDataMapper_Base
 	 * If all parameters are empty, find all records
 	 *
 	 * @param array $conditions Array of conditions in column => value pairs
-	 * @param array $orderBy Array of ORDER BY columns/values
 	 */
-	public function all(array $conditions = array(), array $orderBy = array())
+	public function all(array $conditions = array())
 	{
-		return $this->select()->where($conditions)->orderBy($orderBy);
+		return $this->select()->where($conditions)->order($orderBy);
 	}
 	
 	
@@ -272,8 +284,8 @@ class phpDataMapper_Base
 	 */
 	public function first(array $conditions = array(), array $orderBy = array())
 	{
-		$query = $this->select()->where($conditions)->orderBy($orderBy)->limit(1);
-		$rows = $this->getAdapterSlave()->read($query);
+		$query = $this->select()->where($conditions)->order($orderBy)->limit(1);
+		$rows = $this->adapterRead()->read($query);
 		if($rows) {
 			return $rows->first();
 		} else {
@@ -295,7 +307,7 @@ class phpDataMapper_Base
 		self::logQuery($sql, $binds);
 		
 		// Prepare and execute query
-		if($stmt = $this->adapter->prepare($sql)) {
+		if($stmt = $this->adapter()->prepare($sql)) {
 			$results = $stmt->execute($binds);
 			if($results) {
 				$r = $this->getResultSet($stmt);
@@ -340,15 +352,15 @@ class phpDataMapper_Base
 					} else {
 						$relatedObj = $relationColumns[$field];
 					}
-					$relatedMapper = $relatedObj->getMapper();
+					$relatedMapper = $relatedObj->mapper();
 					
 					// Row object
-					if($relatedRow instanceof phpDataMapper_Row) {
+					if($relatedRow instanceof phpDataMapper_Entity) {
 						$relatedRowObj = $relatedRow;
 						
 					// Associative array
 					} elseif(is_array($relatedRow)) {
-						$relatedRowObj = new $this->rowClass($relatedRow);
+						$relatedRowObj = new $this->entityClass($relatedRow);
 					}
 					
 					// Set column values on row only if other data has been updated (prevents queries for unchanged existing rows)
@@ -368,11 +380,11 @@ class phpDataMapper_Base
 	/**
 	 * Save result object
 	 */
-	public function save(phpDataMapper_Row $row)
+	public function save(phpDataMapper_Entity $row)
 	{
 		// Run validation
 		if($this->validate($row)) {
-			$pk = $this->getPrimaryKey($row);
+			$pk = $this->primaryKey($row);
 			// No primary key, insert
 			if(empty($pk)) {
 				$result = $this->insert($row);
@@ -391,7 +403,7 @@ class phpDataMapper_Base
 	/**
 	 * Insert given row object with set properties
 	 */
-	public function insert(phpDataMapper_Row $row)
+	public function insert(phpDataMapper_Entity $row)
 	{
 		$data = array();
 		$rowData = $row->getData();
@@ -406,7 +418,7 @@ class phpDataMapper_Base
 		if(count($data) > 0) {
 			$result = $this->adapter->create($this->getSourceName(), $data);
 			// Update primary key on row
-			$pkField = $this->getPrimaryKeyField();
+			$pkField = $this->primaryKeyField();
 			$row->$pkField = $result;
 		} else {
 			$result = false;
@@ -424,7 +436,7 @@ class phpDataMapper_Base
 	/**
 	 * Update given row object
 	 */
-	public function update(phpDataMapper_Row $row)
+	public function update(phpDataMapper_Entity $row)
 	{
 		// Ensure fields exist to prevent errors
 		$binds = array();
@@ -436,7 +448,7 @@ class phpDataMapper_Base
 		}
 		
 		// Handle with adapter
-		$result = $this->adapter->update($this->getSourceName(), $binds, array($this->getPrimaryKeyField() => $this->getPrimaryKey($row)));
+		$result = $this->adapter()->update($this->getSourceName(), $binds, array($this->primaryKeyField() => $this->primaryKey($row)));
 		
 		// Save related rows
 		if($result) {
@@ -450,9 +462,9 @@ class phpDataMapper_Base
 	/**
 	 * Destroy/Delete given row object
 	 */
-	public function destroy(phpDataMapper_Row $row)
+	public function destroy(phpDataMapper_Entity $row)
 	{
-		$conditions = array($this->getPrimaryKeyField() => $this->getPrimaryKey($row));
+		$conditions = array($this->primaryKeyField() => $this->primaryKey($row));
 		return $this->delete($conditions);
 	}
 	
@@ -464,7 +476,7 @@ class phpDataMapper_Base
 	 */
 	public function delete(array $conditions)
 	{
-		return $this->adapter->delete($this->getSourceName(), $conditions);
+		return $this->adapter()->delete($this->getSourceName(), $conditions);
 	}
 	
 	
@@ -473,7 +485,7 @@ class phpDataMapper_Base
 	 * Should delete all rows and reset serial/auto_increment keys to 0
 	 */
 	public function truncateTable() {
-		return $this->adapter->truncateTable($this->getSourceName());
+		return $this->adapter()->truncateTable($this->getSourceName());
 	}
 	
 	
@@ -482,7 +494,7 @@ class phpDataMapper_Base
 	 * Destructive and dangerous - drops entire table and all data
 	 */
 	public function dropTable() {
-		return $this->adapter->dropTable($this->getSourceName());
+		return $this->adapter()->dropTable($this->getSourceName());
 	}
 	
 	
@@ -491,10 +503,10 @@ class phpDataMapper_Base
 	 * 
 	 * @todo A LOT more to do here... More validation, break up into classes with rules, etc.
 	 */
-	public function validate(phpDataMapper_Row $row)
+	public function validate(phpDataMapper_Entity $row)
 	{
 		// Check validation rules on each feild
-		foreach($this->fields as $field => $fieldAttrs) {
+		foreach($this->fields() as $field => $fieldAttrs) {
 			if(isset($fieldAttrs['required']) && true === $fieldAttrs['required']) {
 				// Required field
 				if(empty($row->$field)) {
@@ -517,7 +529,7 @@ class phpDataMapper_Base
 	 */
 	public function migrate()
 	{
-		return $this->getAdapter()->migrate($this->getSourceName(), $this->fields);
+		return $this->adapter()->migrate($this->source(), $this->fields());
 	}
 	
 	

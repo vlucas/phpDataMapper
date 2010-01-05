@@ -3,8 +3,8 @@
  * $Id$
  *
  * @package phpDataMapper
- * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
+ * @link http://github.com/vlucas/phpDataMapper
  */
 class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 {

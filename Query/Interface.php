@@ -3,8 +3,8 @@
  * Query interface
  *
  * @package phpDataMapper
- * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
+ * @link http://github.com/vlucas/phpDataMapper
  */
 interface phpDataMapper_Query_Interface
 {	
@@ -47,12 +47,12 @@ interface phpDataMapper_Query_Interface
 	/**
 	 * ORDER BY columns
 	 */
-	public function orderBy($fields = array());
+	public function order($fields = array());
 	
 	/**
 	 * GROUP BY columns
 	 */
-	public function groupBy(array $fields = array());
+	public function group(array $fields = array());
 	
 	/**
 	 * LIMIT query or result set

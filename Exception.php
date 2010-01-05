@@ -1,16 +1,10 @@
 <?php
 /**
- * $Id$
- *
  * Handles generic phpDataMapper errors
  *
  * @package phpDataMapper
- * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
- *
- * @version			$Revision$
- * @modifiedby		$LastChangedBy$
- * @lastmodified	$Date$
+ * @link http://github.com/vlucas/phpDataMapper
  */
 class phpDataMapper_Exception extends Exception
 {

@@ -1,16 +1,10 @@
 <?php
 /**
- * $Id$
- * 
- * Pagination Object for phpDataMapper queries
+ * Dynamic and automated pagination for phpDataMapper_Query objects
  * 
  * @package phpDataMapper
- * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
- * 
- * @version			$Revision$
- * @modifiedby		$LastChangedBy$
- * @lastmodified	$Date$
+ * @link http://github.com/vlucas/phpDataMapper
  */
 class phpDataMapper_Pager
 {
@@ -21,12 +15,13 @@ class phpDataMapper_Pager
 	/**
 	 *
 	 */
-	public function __construct(phpDataMapper_Query $mapper, $page = 1, $rowsPerPage = 30)
+	public function __construct(phpDataMapper_Query $query, $page = 1, $rowsPerPage = 30)
 	{
-		$this->mapper = $mapper;
+		$this->query = $query;
+		$this->mapper = $query->getMapper();
 		$this->currentPage = $page;
 		$this->rowsPerPage = $rowsPerPage;
-		$this->mapper->limit($this->rowsPerPage, $this->getOffset());
+		$this->query->limit($this->rowsPerPage, $this->getOffset());
 	}
 	
 	
@@ -37,7 +32,7 @@ class phpDataMapper_Pager
 	public function setPage($page)
 	{
 		$this->currentPage = $page;
-		$this->mapper->limit($this->rowsPerPage, $this->getOffset());
+		$this->query->limit($this->rowsPerPage, $this->getOffset());
 	}
 	
 	
@@ -58,7 +53,7 @@ class phpDataMapper_Pager
 	public function setRowsPerPage($rowsPerPage)
 	{
 		$this->rowsPerPage = $rowsPerPage;
-		$this->mapper->limit($this->rowsPerPage, $this->getOffset());
+		$this->query->limit($this->rowsPerPage, $this->getOffset());
 	}
 	
 	

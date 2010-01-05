@@ -14,8 +14,8 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	public $fields = array();
 	public $source;
 	public $conditions = array();
-	public $orderBy = array();
-	public $groupBy = array();
+	public $order = array();
+	public $group = array();
 	public $limit;
 	public $limitOffset;
 	
@@ -101,7 +101,7 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	 * @param array $fields Array of field names to use for sorting
 	 * @return $this
 	 */
-	public function orderBy($fields = array())
+	public function order($fields = array())
 	{
 		$orderBy = array();
 		$defaultSort = "ASC";
@@ -113,10 +113,10 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 					$sort = $defaultSort;
 				}
 				
-				$this->orderBy[$field] = strtoupper($sort);
+				$this->order[$field] = strtoupper($sort);
 			}
 		} else {
-			$this->orderBy[$fields] = $defaultSort;
+			$this->order[$fields] = $defaultSort;
 		}
 		return $this;
 	}
@@ -128,11 +128,11 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	 * @param array $fields Array of field names to use for grouping
 	 * @return $this
 	 */
-	public function groupBy(array $fields = array())
+	public function group(array $fields = array())
 	{
 		$groupBy = array();
 		foreach($fields as $field) {
-			$this->groupBy[] = $field;
+			$this->group[] = $field;
 		}
 		return $this;
 	}
@@ -209,6 +209,6 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 		// Build SQL
 		// Prepared Statement
 		// Return ResultSet
-		return $this->mapper->getAdapterRead()->read($this);
+		return $this->mapper->adapterRead()->read($this);
 	}
 }

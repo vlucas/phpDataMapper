@@ -3,10 +3,10 @@
  * Collection of phpDataMapper_Row objects
  * 
  * @package phpDataMapper
- * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
+ * @link http://github.com/vlucas/phpDataMapper
  */
-class phpDataMapper_Query_Set implements Iterator, Countable, ArrayAccess
+class phpDataMapper_Collection implements Iterator, Countable, ArrayAccess
 {
 	protected $results = array();
 	protected $resultsIdentities = array();

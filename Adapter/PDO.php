@@ -1,11 +1,11 @@
 <?php
 require_once(dirname(__FILE__) . '/Interface.php');
 /**
- * $Id$
+ * Base PDO adapter
  *
  * @package phpDataMapper
- * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
+ * @link http://github.com/vlucas/phpDataMapper
  */
 abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interface
 {
@@ -302,10 +302,10 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	public function read(phpDataMapper_Query $query)
 	{
 		$conditions = $this->statementConditions($query->conditions);
-		$orderBy = array();
-		if($query->orderBy) {
-			foreach($query->orderBy as $oField => $oSort) {
-				$orderBy[] = $oField . " " . $oSort;
+		$order = array();
+		if($query->order) {
+			foreach($query->order as $oField => $oSort) {
+				$order[] = $oField . " " . $oSort;
 			}
 		}
 		
@@ -313,15 +313,15 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			SELECT " . $this->statementColumns($query->fields) . "
 			FROM " . $query->source . "
 			" . ($conditions ? 'WHERE ' . $conditions : '') . "
-			" . ($query->groupBy ? 'GROUP BY ' . implode(', ', $query->groupBy) : '') . "
-			" . ($orderBy ? 'ORDER BY ' . implode(', ', $orderBy) : '') . "
+			" . ($query->group ? 'GROUP BY ' . implode(', ', $query->group) : '') . "
+			" . ($order ? 'ORDER BY ' . implode(', ', $order) : '') . "
 			";
 		
 		// Get result set
 	}
 	
 	/**
-	 * Update given row object
+	 * Update entity
 	 */
 	public function update($table, array $data, array $where = array())
 	{
@@ -377,15 +377,16 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	
 	
 	/**
-	 * Delete rows matching given conditions
+	 * Delete entities matching given conditions
 	 *
+	 * @param string $source Name of data source
 	 * @param array $conditions Array of conditions in column => value pairs
 	 */
-	public function delete($table, array $data)
+	public function delete($source, array $data)
 	{
 		$binds = $this->statementBinds($data);
 		
-		$sql = "DELETE FROM " . $table . "";
+		$sql = "DELETE FROM " . $source . "";
 		$sql .= $this->statementConditions($data);
 		
 		// Add query to log
@@ -410,8 +411,8 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 * Truncate a database table
 	 * Should delete all rows and reset serial/auto_increment keys to 0
 	 */
-	public function truncateTable($table) {
-		$sql = "TRUNCATE TABLE " . $table;
+	public function truncateTable($source) {
+		$sql = "TRUNCATE TABLE " . $source;
 		
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql);
@@ -424,8 +425,8 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 * Drop a database table
 	 * Destructive and dangerous - drops entire table and all data
 	 */
-	public function dropTable($table) {
-		$sql = "DROP TABLE " . $table;
+	public function dropTable($source) {
+		$sql = "DROP TABLE " . $source;
 		
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql);
@@ -453,8 +454,8 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 * Destructive and dangerous - drops entire table and all data
 	 * Will throw errors if user does not have proper permissions
 	 */
-	public function dropDatabase($table) {
-		$sql = "DROP DATABASE " . $table;
+	public function dropDatabase($database) {
+		$sql = "DROP DATABASE " . $database;
 		
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql);

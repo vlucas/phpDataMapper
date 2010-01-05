@@ -3,8 +3,8 @@
  * DataMapper entity class - each item is fetched into this object
  * 
  * @package phpDataMapper
- * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
+ * @link http://github.com/vlucas/phpDataMapper
  */
 class phpDataMapper_Entity
 {

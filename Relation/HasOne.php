@@ -14,7 +14,7 @@ class phpDataMapper_Relation_HasOne extends phpDataMapper_Relation
 	 */
 	public function all()
 	{
-		return $this->mapper->first($this->getForeignKeys(), $this->getRelationSorting());
+		return $this->mapper()->first($this->foreignKeys(), $this->getRelationSorting());
 	}
 	
 	

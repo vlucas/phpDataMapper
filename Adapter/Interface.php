@@ -1,9 +1,8 @@
 <?php
 /**
- * $Id$
+ * Adapter Interface
  * 
  * @package phpDataMapper
- * @author Vance Lucas <vance@vancelucas.com>
  * @link http://phpdatamapper.com
  */
 interface phpDataMapper_Adapter_Interface
@@ -20,19 +19,19 @@ interface phpDataMapper_Adapter_Interface
 	
 	
 	/**
-	 *	Get database connection
+	 * Get database connection
 	 */
 	public function getConnection();
 	
 	
 	/**
-	 *	Get database DATE format
+	 * Get database DATE format for PHP date() function
 	 */
 	public function getDateFormat();
 	
 	
 	/**
-	 *	Get database full DATETIME
+	 * Get database full DATETIME for PHP date() function
 	 */
 	public function getDateTimeFormat();
 	
@@ -46,7 +45,7 @@ interface phpDataMapper_Adapter_Interface
 	
 	
 	/**
-	 * Insert row into database
+	 * Insert entity
 	 */
 	public function create($source, array $data);
 	
@@ -58,13 +57,13 @@ interface phpDataMapper_Adapter_Interface
 	
 	
 	/**
-	 * Update row in database
+	 * Update entity
 	 */
 	public function update($source, array $data, array $where = array());
 	
 	
 	/**
-	 * Delete row from database
+	 * Delete entity
 	 */
 	public function delete($source, array $where);
 }

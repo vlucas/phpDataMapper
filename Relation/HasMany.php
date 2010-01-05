@@ -14,7 +14,7 @@ class phpDataMapper_Relation_HasMany extends phpDataMapper_Relation implements C
 	 */
 	public function all()
 	{
-		return $this->mapper->all($this->getForeignKeys(), $this->getRelationSorting());
+		return $this->mapper()->all($this->foreignKeys(), $this->getRelationSorting());
 	}
 	
 	
@@ -23,7 +23,7 @@ class phpDataMapper_Relation_HasMany extends phpDataMapper_Relation implements C
 	 */
 	public function first()
 	{
-		return $this->mapper->first($this->getForeignKeys(), $this->getRelationSorting());
+		return $this->mapper()->first($this->foreignKeys(), $this->getRelationSorting());
 	}
 	
 	
