@@ -174,7 +174,12 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 		if($fieldInfo['default'] === null && $isNullable) {
 			$syntax .= " DEFAULT NULL";
 		} elseif($fieldInfo['default'] !== null) {
-			$syntax .= " DEFAULT '" . $fieldInfo['default'] . "'";
+			$default = $fieldInfo['default'];
+			// If it's a boolean and $default is boolean then it should be 1 or 0
+			if ( is_bool($default) && $fieldInfo['type'] == "boolean" ) {
+				$default = $default ? 1 : 0;
+			}
+			$syntax .= " DEFAULT '" . $default . "'";
 		}
 		// Extra
 		$syntax .= ($fieldInfo['primary'] || $fieldInfo['auto_increment']) ? ' AUTO_INCREMENT' : '';
@@ -233,9 +238,9 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 	 * @param array $fieldInfo Array of field settings
 	 * @return string SQL syntax
 	 */
-	public function migrateSyntaxFieldUpdate($fieldName, array $fieldInfo)
+	public function migrateSyntaxFieldUpdate($fieldName, array $fieldInfo, $add = false)
 	{
-		return "CHANGE `" . $fieldName . "` " . $this->migrateSyntaxFieldCreate($fieldName, $fieldInfo);
+		return ( $add ? "ADD COLUMN " : "MODIFY " ) . $this->migrateSyntaxFieldCreate($fieldName, $fieldInfo);
 	}
 	
 	
@@ -254,7 +259,7 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 			CHANGE `title` `title` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL ,
 			CHANGE `status` `status` VARCHAR( 40 ) CHARACTER SET utf8 COLLATE utf8_unicode_ci NULL DEFAULT 'draft'
 		*/
-		$syntax = "ALTER TABLE `" . $table . "` (\n";
+		$syntax = "ALTER TABLE `" . $table . "` \n";
 		// Columns
 		$syntax .= implode(",\n", $columnsSyntax);
 		
@@ -282,8 +287,7 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 		}
 		
 		// Extra
-		$syntax .= "\n) ENGINE=" . $this->engine . " DEFAULT CHARSET=" . $this->charset . " COLLATE=" . $this->collate . ";";
-		
+		$syntax .= ";";
 		return $syntax;
 	}
 }
