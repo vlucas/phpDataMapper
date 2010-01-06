@@ -9,12 +9,11 @@ require_once dirname(dirname(__FILE__)) . '/init.php';
  */
 class BlogMapper extends phpDataMapper_Base {
 	protected $source = 'test_blog';
-	protected $fields = array(
-		'id' => array('type' => 'int', 'primary' => true),
-		'title' => array('type' => 'string', 'required' => true),
-		'body' => array('type' => 'text', 'required' => true),
-		'date_created' => array('type' => 'datetime')
-		);
+	
+	public $id = array('type' => 'int', 'primary' => true);
+	public $title = array('type' => 'string', 'required' => true);
+	public $body = array('type' => 'text', 'required' => true);
+	public $date_created = array('type' => 'datetime');
 }
 
 
@@ -53,7 +52,7 @@ class Blog_BasicTest extends PHPUnit_Framework_TestCase
 		$post = $mapper->get();
 		$post->title = "Test Post";
 		$post->body = "<p>This is a really awesome super-duper post.</p><p>It's really quite lovely.</p>";
-		$post->date_created = date($mapper->getDateTimeFormat());
+		$post->date_created = date($mapper->adapter()->dateTimeFormat());
 		$result = $mapper->insert($post); // returns an id
 		
 		$this->assertTrue(is_numeric($result));
@@ -76,7 +75,7 @@ class Blog_BasicTest extends PHPUnit_Framework_TestCase
 	{
 		$mapper = $this->blogMapper;
 		$post = $mapper->first(array('title' => "Test Post Modified"));
-		$result = $mapper->destroy($post);
+		$result = $mapper->delete($post);
 		
 		$this->assertTrue($result);
 	}
