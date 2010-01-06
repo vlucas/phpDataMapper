@@ -10,8 +10,9 @@ require_once(dirname(__FILE__) . '/Interface.php');
 abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interface
 {
 	// Format for date columns, formatted for PHP's date() function
-	protected $FORMAT_DATE;
-	protected $FORMAT_DATETIME;
+	protected $format_date;
+	protected $format_time;
+	protected $format_datetime;
 	
 	
 	// Connection details
@@ -44,7 +45,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			
 			// Establish connection
 			try {
-				$this->connection = new PDO($this->getDsn(), $this->username, $this->password, $this->options);
+				$this->connection = new PDO($this->dsn(), $this->username, $this->password, $this->options);
 			/*
 			} catch(PDOException $e) {
 				if($e->getCode() == 1049) {
@@ -66,7 +67,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 * 
 	 * @return object PDO
 	 */
-	public function getConnection()
+	public function connection()
 	{
 		return $this->connection;
 	}
@@ -77,7 +78,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 * 
 	 * @return string
 	 */
-	public function getDsn()
+	public function dsn()
 	{
 		throw new BadMethodCallException("Error: Method " . __FUNCTION__ . " must be defined in the adapter");
 	}
@@ -88,9 +89,20 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 *
 	 * @return string Date format for PHP's date() function
 	 */
-	public function getDateFormat()
+	public function dateFormat()
 	{
 		return $this->format_date;
+	}
+	
+	
+	/**
+	 * Get database time format
+	 *
+	 * @return string Time format for PHP's date() function
+	 */
+	public function timeFormat()
+	{
+		return $this->format_time;
 	}
 	
 	
@@ -99,7 +111,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 *
 	 * @return string DateTime format for PHP's date() function
 	 */
-	public function getDateTimeFormat()
+	public function dateTimeFormat()
 	{
 		return $this->format_datetime;
 	}
@@ -117,65 +129,6 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	
 	
 	/**
-	 * Format fields with all neccesary array keys and values. Merges defaults with specified values to ensure all options exist for each field.
-	 *
-	 * @param array $fields Field definitions from Model
-	 * @return array Given fields plus all defaults for full array of all possible options
-	 */
-	protected function formatFields(array $fields)
-	{
-		// Default settings for all fields
-		$fieldDefaults = array(
-			'type' => 'string',
-			'default' => null,
-			'length' => null,
-			'required' => false,
-			'null' => true,
-			'unsigned' => false,
-			
-			'auto_increment' => false,
-			'primary' => false,
-			'index' => false,
-			'unique' => false
-			);
-		
-		// Type default overrides for specific field types
-		$fieldTypeDefaults = array(
-			'string' => array(
-				'length' => 255
-				),
-			'float' => array(
-				'length' => array(10,2)
-				),
-			'int' => array(
-				'length' => 10,
-				'unsigned' => true
-				)
-			);
-		
-		// Iterate over all fields
-		$formattedFields = array();
-		foreach($fields as $fieldName => $fieldInfo) {
-			// Set the 'adapter_type' for SQL syntax
-			if(isset($this->fieldTypeMap[$fieldInfo['type']])) {
-				$fieldInfo['adapter_type'] = $this->fieldTypeMap[$fieldInfo['type']];
-			} else {
-				$fieldInfo['adapter_type'] = $fieldInfo['type'];
-			}
-			
-			if(isset($fieldInfo['type']) && isset($fieldTypeDefaults[$fieldInfo['type']])) {
-				// Include type defaults
-				$formattedFields[$fieldName] = array_merge($fieldDefaults, $fieldTypeDefaults[$fieldInfo['type']], $fieldInfo);
-			} else {
-				// Merge with defaults
-				$formattedFields[$fieldName] = array_merge($fieldDefaults, $fieldInfo);
-			}
-		}
-		return $formattedFields;
-	}
-	
-	
-	/**
 	 * Migrate table structure changes to database
 	 * @param String $table Table name
 	 * @param Array $fields Fields and their attributes as defined in the mapper
@@ -186,9 +139,6 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		$tableExists = false;
 		$tableColumns = $this->getColumnsForTable($table);
 		
-		// Get fields with full array of options
-		$formattedFields = $this->formatFields($fields);
-		
 		if($tableColumns) {
 			$tableExists = true;
 		}
@@ -197,10 +147,10 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			// var_dump($tableColumns);
 			
 			// Update table
-			$this->migrateTableUpdate($table, $formattedFields);
+			$this->migrateTableUpdate($table, $fields);
 		} else {
 			// Create table
-			$this->migrateTableCreate($table, $formattedFields);
+			$this->migrateTableCreate($table, $fields);
 		}
 	}
 	
@@ -334,7 +284,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		}
 		
 		$sql = "
-			SELECT " . $this->statementColumns($query->fields) . "
+			SELECT " . $this->statementFields($query->fields) . "
 			FROM " . $query->source . "
 			" . ($conditions ? 'WHERE ' . $conditions : '') . "
 			" . ($query->group ? 'GROUP BY ' . implode(', ', $query->group) : '') . "
@@ -342,6 +292,25 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			";
 		
 		// Get result set
+		
+		// Add query to log
+		phpDataMapper_Base::logQuery($sql, $query->params());
+		
+		// Prepare update query
+		$stmt = $this->connection()->prepare($sql);
+		
+		if($stmt) {
+			// Execute
+			if($stmt->execute($query->params())) {
+				$result = $this->toCollection($query, $stmt);
+			} else {
+				$result = false;
+			}
+		} else {
+			$result = false;
+		}
+		
+		return $result;
 	}
 	
 	/**
@@ -377,7 +346,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			phpDataMapper_Base::logQuery($sql, $binds);
 			
 			// Prepare update query
-			$stmt = $this->prepare($sql);
+			$stmt = $this->connection()->prepare($sql);
 			
 			// Bind column values
 			$this->bindValues($stmt, $binds);
@@ -416,7 +385,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql, $binds);
 		
-		$stmt = $this->prepare($sql, $this->statementsBinds($data));
+		$stmt = $this->connection()->prepare($sql, $this->statementsBinds($data));
 		if($stmt) {
 			// Execute
 			if($stmt->execute($binds)) {
@@ -441,7 +410,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql);
 		
-		return $this->exec($sql);
+		return $this->connection()->exec($sql);
 	}
 	
 	
@@ -455,7 +424,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql);
 		
-		return $this->exec($sql);
+		return $this->connection()->exec($sql);
 	}
 	
 	
@@ -469,7 +438,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql);
 		
-		return $this->exec($sql);
+		return $this->connection()->exec($sql);
 	}
 	
 	
@@ -484,7 +453,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql);
 		
-		return $this->exec($sql);
+		return $this->connection()->exec($sql);
 	}
 	
 	
@@ -536,7 +505,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			}
 		}
 		
-		$sql = empty($sqlWhere) ? "" : " WHERE " . implode(' AND ', $sqlWhere);
+		$sql = empty($sqlWhere) ? "" : implode(' AND ', $sqlWhere);
 		return $sql;
 	}
 	
@@ -571,17 +540,15 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	/**
 	 * Return result set for current query
 	 */
-	public function getResultSet()
+	public function toCollection(phpDataMapper_Query $query, $stmt)
 	{
-		$mapper = $this->mapper;
-		$stmt = $this->getAdapterRead()->prepare($sql);
-		
+		$mapper = $query->mapper();
 		if($stmt instanceof PDOStatement) {
 			$results = array();
 			$resultsIdentities = array();
 			
 			// Set object to fetch results into
-			$stmt->setFetchMode(PDO::FETCH_CLASS, $mapper->rowClass, array());
+			$stmt->setFetchMode(PDO::FETCH_CLASS, $mapper->entityClass(), array());
 			
 			// Fetch all results into new DataMapper_Result class
 			while($row = $stmt->fetch(PDO::FETCH_CLASS)) {
@@ -598,7 +565,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 				$results[] = $row;
 				
 				// Store primary key of each unique record in set
-				$pk = $this->getPrimaryKey($row);
+				$pk = $mapper->primaryKey($row);
 				if(!in_array($pk, $resultsIdentities) && !empty($pk)) {
 					$resultsIdentities[] = $pk;
 				}
@@ -609,12 +576,12 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			// Ensure set is closed
 			$stmt->closeCursor();
 			
-			return new $mapper->resultSetClass($results, $resultsIdentities);
+			$collectionClass = $mapper->collectionClass();
+			return new $collectionClass($results, $resultsIdentities);
 			
 		} else {
-			$mapper->addError(__METHOD__ . " - Unable to execute query [" . $sql . "] - " . implode(' | ', $this->getAdapterRead()->errorInfo()));
+			$mapper->addError(__METHOD__ . " - Unable to execute query " . implode(' | ', $this->adapterRead()->errorInfo()));
 			return array();
-			//throw new $this->exceptionClass(__METHOD__ . " expected PDOStatement object");
 		}
 	}
 	
@@ -632,18 +599,5 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			$stmt->bindValue($field, $value);
 		}
 		return true;
-	}
-	
-	
-	/**
-	 * PDO/Connection passthrough
-	 */
-	public function __call($func, $args)
-	{
-		if(is_callable(array($this->getConnection(), $func))) {
-			return call_user_func_array(array($this->getConnection(), $func), $args);
-		} else {
-			return false;
-		}
 	}
 }

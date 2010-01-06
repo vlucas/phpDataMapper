@@ -10,12 +10,13 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 {
 	// Format for date columns, formatted for PHP's date() function
 	protected $format_date = "Y-m-d";
+	protected $format_time = " H:i:s";
 	protected $format_datetime = "Y-m-d H:i:s";
 	
 	// Driver-Specific settings
-	protected $engine = 'InnoDB';
-	protected $charset = 'utf8';
-	protected $collate = 'utf8_unicode_ci';
+	protected $_engine = 'InnoDB';
+	protected $_charset = 'utf8';
+	protected $_collate = 'utf8_unicode_ci';
 	
 	// Map datamapper field types to actual database adapter types
 	// @todo Have to improve this to allow custom types, callbacks, and validation
@@ -39,7 +40,7 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 	 * 
 	 * @return string
 	 */
-	public function getDsn()
+	public function dsn()
 	{
 		$dsn = 'mysql:host=' . $this->host . ';dbname=' . $this->database . '';
 		return $dsn;
@@ -49,19 +50,22 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 	/**
 	 * Set database engine (InnoDB, MyISAM, etc)
 	 */
-	public function setEngine($engine)
+	public function engine($engine = null)
 	{
-		$this->engine = $engine;
+		if(null !== $engine) {
+			$this->_engine = $engine;
+		}
+		return $this->_engine;
 	}
 	
 	
 	/**
 	 * Set character set and MySQL collate string
 	 */
-	public function setCharacterSet($charset, $collate = 'utf8_unicode_ci')
+	public function characterSet($charset, $collate = 'utf8_unicode_ci')
 	{
-		$this->charset = $charset;
-		$this->collate = $collate;
+		$this->_charset = $charset;
+		$this->_collate = $collate;
 	}
 	
 	
@@ -74,7 +78,7 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 	protected function getColumnsForTable($table)
 	{
 		$tableColumns = array();
-		$tblCols = $this->getConnection()->query("SELECT * FROM information_schema.columns WHERE table_name = '" . $table . "'");
+		$tblCols = $this->connection()->query("SELECT * FROM information_schema.columns WHERE table_name = '" . $table . "'");
 		if($tblCols) {
 			while($columnData = $tblCols->fetch(PDO::FETCH_ASSOC)) {
 				$tableColumns[$columnData['COLUMN_NAME']] = $columnData;
@@ -84,68 +88,6 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 			return false;
 		}
 	}
-	
-	
-	/**
-	 * Column syntax conversion
-	 */
-	 /*
-	public function migrateColumnSyntax($column, $colData)
-	{
-		// NULL values allowed?
-		if(strtolower($colData['Null']) == "no") {
-			$field['required'] = true; ((strlen($colData['Default']) == 0) ? " DEFAULT NULL" : "") ;
-			// Default value
-			if(strlen($colData['Default']) > 0) {
-				$field['default'] = $colData['Default'];
-			}
-		}
-		
-		
-		
-		$default = (strlen($colData['Default']) == 0) ? "" : " DEFAULT '" . $colData['Default'] . "'";
-		$extra = empty($colData['Extra']) ? "" : " " . $colData['Extra'] ;
-	}
-	*?
-	
-	
-	/**
-	 * Column syntax
-	 */
-	 /*
-	public function migrateColumnSyntaxOld($column, $colData, $creating = false)
-	{
-		$null = (strtolower($colData['Null']) == "no") ? " NOT NULL" : " NULL" . ((strlen($colData['Default']) == 0) ? " DEFAULT NULL" : "") ;
-		$default = (strlen($colData['Default']) == 0) ? "" : " DEFAULT '" . $colData['Default'] . "'";
-		$extra = empty($colData['Extra']) ? "" : " " . $colData['Extra'] ;
-		
-		// Determine if we can specify a character set
-		$charset = '';
-		$charsetTypes = array('CHAR', 'TEXT', 'ENUM', 'SET');
-		foreach($charsetTypes as $colType) {
-			if(strpos(strtoupper($colData['Type']), $colType) !== false) {
-				$charset = " COLLATE utf8_unicode_ci";
-			}
-		}
-		
-		// Add key if the column has one
-		$key = '';
-		if(isset($colData['Key'])) {
-			if($colData['Key'] == "PRI") {
-				$key = ", " . ($creating ? '' : 'ADD') . " PRIMARY KEY(" . $column . ")";
-			}
-			if($colData['Key'] == "MUL") {
-				$key = ", " . ($creating ? '' : 'ADD') . " INDEX(" . $column . ")";
-			}
-			if($colData['Key'] == "UNI") {
-				$key = ", " . ($creating ? '' : 'ADD') . " UNIQUE(" . $column . ")";
-			}
-		}
-		
-		$sql = "`" . $column . "` " . $colData['Type'] . " " . $charset . $default . $null . $extra . $key;
-		return $sql;
-	}
-	*/
 	
 	
 	/**

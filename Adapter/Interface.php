@@ -21,19 +21,25 @@ interface phpDataMapper_Adapter_Interface
 	/**
 	 * Get database connection
 	 */
-	public function getConnection();
+	public function connection();
 	
 	
 	/**
 	 * Get database DATE format for PHP date() function
 	 */
-	public function getDateFormat();
+	public function dateFormat();
+	
+	
+	/**
+	 * Get database TIME format for PHP date() function
+	 */
+	public function timeFormat();
 	
 	
 	/**
 	 * Get database full DATETIME for PHP date() function
 	 */
-	public function getDateTimeFormat();
+	public function dateTimeFormat();
 	
 	
 	/**
