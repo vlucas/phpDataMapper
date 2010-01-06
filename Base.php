@@ -9,18 +9,22 @@
 class phpDataMapper_Base
 {
 	// Stored adapter connections
-	protected $adapter;
-	protected $adapterRead;
+	protected $_adapter;
+	protected $_adapterRead;
 	
 	// Class Names for required classes - Here so they can be easily overridden
-	protected $entityClass = 'phpDataMapper_Entity';
-	protected $queryClass = 'phpDataMapper_Query';
-	protected $collectionClass = 'phpDataMapper_Collection';
-	protected $exceptionClass = 'phpDataMapper_Exception';
+	protected $_entityClass = 'phpDataMapper_Entity';
+	protected $_queryClass = 'phpDataMapper_Query';
+	protected $_collectionClass = 'phpDataMapper_Collection';
+	protected $_exceptionClass = 'phpDataMapper_Exception';
+	
+	// Store cached field info
+	protected $_fields = array();
+	protected $_relations = array();
+	protected $_primaryKey;
 	
 	// Data source setup info
 	protected $source;
-	protected $primaryKey;
 	/**
 	=== EXAMPLE fields ===
 	
@@ -40,15 +44,11 @@ class phpDataMapper_Base
 	======================
 	*/
 	
-	// Class loader instance and action name
-	protected $loader;
-	protected $loaderAction;
-	
 	// Array of error messages and types
-	protected $errors = array();
+	protected $_errors = array();
 	
 	// Query log
-	protected static $queryLog = array();
+	protected static $_queryLog = array();
 	
 	
 	/**
@@ -56,38 +56,31 @@ class phpDataMapper_Base
 	 */
 	public function __construct(phpDataMapper_Adapter_Interface $adapter, $adapterRead = null)
 	{
-		$this->adapter = $adapter;
+		$this->_adapter = $adapter;
 		
 		// Ensure required classes for minimum activity are loaded
-		$this->loadClass($this->entityClass);
-		$this->loadClass($this->queryClass);
-		$this->loadClass($this->collectionClass);
-		$this->loadClass($this->exceptionClass);
+		$this->loadClass($this->_entityClass);
+		$this->loadClass($this->_queryClass);
+		$this->loadClass($this->_collectionClass);
+		$this->loadClass($this->_exceptionClass);
 		
 		// Slave adapter if given (usually for reads)
 		if(null !== $adapterRead) {
 			if($adapterRead instanceof phpDataMapper_Adapter_Interface) {
-				$this->adapterRead = $adapterRead;
+				$this->_adapterRead = $adapterRead;
 			} else {
-				throw new InvalidArgumentException("Slave adapter must be an instance of 'phpDataMapper_Adapter_Interface'");
+				throw new InvalidArgumentException("Secondary/Slave adapter must implement 'phpDataMapper_Adapter_Interface'");
 			}
 		}
 		
 		// Ensure table has been defined
 		if(!$this->source) {
-			throw new $this->exceptionClass("Error: Source name must be defined - please define the \$source variable. This can be a database table name, a file name, or a URL, depending on your adapter.");
+			throw new $this->_exceptionClass("Error: Source name must be defined - please define the \$source variable. This can be a database table name, a file name, or a URL, depending on your adapter.");
 		}
 		
 		// Ensure fields have been defined for current table
 		if(!$this->fields()) {
-			throw new $this->exceptionClass("Error: Fields must be defined");
-		}
-		
-		// Find and store primary key field
-		foreach($this->fields() as $field => $options) {
-			if(isset($options['primary']) && $options['primary'] === true) {
-				$this->primaryKey = $field;
-			}
+			throw new $this->_exceptionClass("Error: Fields must be defined");
 		}
 	}
 	
@@ -97,7 +90,7 @@ class phpDataMapper_Base
 	 */
 	public function adapter()
 	{
-		return $this->adapter;
+		return $this->_adapter;
 	}
 	
 	
@@ -106,10 +99,10 @@ class phpDataMapper_Base
 	 */
 	public function adapterRead()
 	{
-		if($this->adapterRead) {
-			return $this->adapterRead;
+		if($this->_adapterRead) {
+			return $this->_adapterRead;
 		} else {
-			return $this->adapter;
+			return $this->_adapter;
 		}
 	}
 	
@@ -124,17 +117,88 @@ class phpDataMapper_Base
 	
 	
 	/**
-	 * Get field names
+	 * Get formatted fields with all neccesary array keys and values.
+	 * Merges defaults with defined field values to ensure all options exist for each field.
+	 *
+	 * @return array Defined fields plus all defaults for full array of all possible options
 	 */
 	public function fields()
 	{
-		$fields = get_object_vars($this);
-		$getFields = create_function('$obj', 'return get_object_vars($obj);');
-		$fields = $getFields($this);
-		foreach($fields as $field => $fieldOpts) {
+		if($this->_fields) {
+			$returnFields = $this->_fields;
+		} else {
+			$getFields = create_function('$obj', 'return get_object_vars($obj);');
+			$fields = $getFields($this);
 			
+			// Default settings for all fields
+			$fieldDefaults = array(
+				'type' => 'string',
+				'default' => null,
+				'length' => null,
+				'required' => false,
+				'null' => true,
+				'unsigned' => false,
+				
+				'auto_increment' => false,
+				'primary' => false,
+				'index' => false,
+				'unique' => false,
+				
+				'relation' => false
+				);
+			
+			// Type default overrides for specific field types
+			$fieldTypeDefaults = array(
+				'string' => array(
+					'length' => 255
+					),
+				'float' => array(
+					'length' => array(10,2)
+					),
+				'int' => array(
+					'length' => 10,
+					'unsigned' => true
+					)
+				);
+			
+			$returnFields = array();
+			foreach($fields as $fieldName => $fieldOpts) {
+				// Format field will full set of default options
+				if(isset($fieldInfo['type']) && isset($fieldTypeDefaults[$fieldOpts['type']])) {
+					// Include type defaults
+					$fieldOpts = array_merge($fieldDefaults, $fieldTypeDefaults[$fieldOpts['type']], $fieldOpts);
+				} else {
+					// Merge with defaults
+					$fieldOpts = array_merge($fieldDefaults, $fieldOpts);
+				}
+				
+				// Store primary key
+				if($fieldOpts['primary'] === true) {
+					$this->_primaryKey = $fieldName;
+				}
+				// Store relations (and remove them from the mix of regular fields)
+				if($fieldOpts['type'] == 'relation') {
+					$this->_relations[$fieldName] = $fieldOpts;
+					continue; // skip, not a field
+				}
+				
+				$returnFields[$fieldName] = $fieldOpts;
+			}
+			$this->_fields = $returnFields;
 		}
-		return $fields;
+		return $returnFields;
+	}
+	
+	
+	/**
+	 * Get defined relations
+	 */
+	public function relations()
+	{
+		if(!$this->_relations) {
+			$this->fields();
+		}
+		return $this->_relations;
 	}
 	
 	
@@ -153,7 +217,7 @@ class phpDataMapper_Base
 	 */
 	public function primaryKeyField()
 	{
-		return $this->primaryKey;
+		return $this->_primaryKey;
 	}
 	
 	
@@ -173,13 +237,13 @@ class phpDataMapper_Base
 	{
 		// Create new row object
 		if(!$primaryKeyValue) {
-			$row = new $this->entityClass();
+			$entity = new $this->_entityClass();
 		
 		// Find record by primary key
 		} else {
-			$row = $this->first(array($this->primaryKeyField() => $primaryKeyValue));
+			$entity = $this->first(array($this->primaryKeyField() => $primaryKeyValue));
 		}
-		return $row;
+		return $entity;
 	}
 	
 	
@@ -189,11 +253,12 @@ class phpDataMapper_Base
 	public function getRelationsFor(phpDataMapper_Entity $row)
 	{
 		$relatedColumns = array();
-		if(is_array($this->relations) && count($this->relations) > 0) {
-			foreach($this->relations as $column => $relation) {
+		if(count($this->relations()) > 0) {
+			foreach($this->relations() as $column => $relation) {
 				$mapperName = $relation['mapper'];
 				// Ensure related mapper can be loaded
 				if($loaded = $this->loadClass($mapperName)) {
+					// @todo Fix this to implement new 'self' and 'foreign' keywords in front of columns
 					// Load foreign keys with data from current row
 					$foreignKeys = array_flip($relation['foreign_keys']);
 					foreach($foreignKeys as $relationCol => $col) {
@@ -201,7 +266,7 @@ class phpDataMapper_Base
 					}
 					
 					// Create new instance of mapper
-					$mapper = new $mapperName($this->adapter);
+					$mapper = new $mapperName($this->adapter());
 					
 					// Load relation class
 					$relationClass = 'phpDataMapper_Relation_' . $relation['relation'];
@@ -255,7 +320,7 @@ class phpDataMapper_Base
 			// Ensure set is closed
 			$stmt->closeCursor();
 			
-			return new $this->collectionClass($results, $resultsIdentities);
+			return new $this->_collectionClass($results, $resultsIdentities);
 			
 		} else {
 			return array();
@@ -272,7 +337,7 @@ class phpDataMapper_Base
 	 */
 	public function all(array $conditions = array())
 	{
-		return $this->select()->where($conditions)->order($orderBy);
+		return $this->select()->where($conditions);
 	}
 	
 	
@@ -280,11 +345,10 @@ class phpDataMapper_Base
 	 * Find first record matching given conditions
 	 *
 	 * @param array $conditions Array of conditions in column => value pairs
-	 * @param array $orderBy Array of ORDER BY columns/values
 	 */
-	public function first(array $conditions = array(), array $orderBy = array())
+	public function first(array $conditions = array())
 	{
-		$query = $this->select()->where($conditions)->order($orderBy)->limit(1);
+		$query = $this->select()->where($conditions)->limit(1);
 		$rows = $this->adapterRead()->read($query);
 		if($rows) {
 			return $rows->first();
@@ -331,8 +395,8 @@ class phpDataMapper_Base
 	 */
 	public function select($fields = "*")
 	{
-		$query = new $this->queryClass($this);
-		$query->select($fields, $this->source);
+		$query = new $this->_queryClass($this);
+		$query->select($fields, $this->source());
 		return $query;
 	}
 	
@@ -640,9 +704,9 @@ class phpDataMapper_Base
 	 */
 	public function debug($row = null)
 	{
-		echo "<p>Executed " . $this->getQueryCount() . " queries:</p>";
+		echo "<p>Executed " . $this->queryCount() . " queries:</p>";
 		echo "<pre>\n";
-		print_r(self::$queryLog);
+		print_r(self::$_queryLog);
 		echo "</pre>\n";
 	}
 	
@@ -652,9 +716,9 @@ class phpDataMapper_Base
 	 * 
 	 * @return int
 	 */
-	public function getQueryCount()
+	public function queryCount()
 	{
-		return count(self::$queryLog);
+		return count(self::$_queryLog);
 	}
 	
 	
@@ -666,7 +730,7 @@ class phpDataMapper_Base
 	 */
 	public static function logQuery($sql, $data = null)
 	{
-		self::$queryLog[] = array(
+		self::$_queryLog[] = array(
 			'query' => $sql,
 			'data' => $data
 			);
