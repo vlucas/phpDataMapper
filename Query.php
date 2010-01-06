@@ -8,7 +8,7 @@
  */
 class phpDataMapper_Query implements Countable, IteratorAggregate
 {
-	protected $mapper;
+	protected $_mapper;
 	
 	// Storage for query properties
 	public $fields = array();
@@ -25,7 +25,16 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	 */
 	public function __construct(phpDataMapper_Base $mapper)
 	{
-		$this->mapper = $mapper;
+		$this->_mapper = $mapper;
+	}
+	
+	
+	/**
+	 * Get current adapter object
+	 */
+	public function mapper()
+	{
+		return $this->_mapper;
 	}
 	
 	
@@ -153,6 +162,25 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	}
 	
 	
+	/**
+	 * Return array of parameters in key => value format
+	 *
+	 * @return array Parameters in key => value format
+	 */
+	public function params()
+	{
+		$params = array();
+		foreach($this->conditions as $i => $data) {
+			if(isset($data['conditions']) && is_array($data['conditions'])) {
+				foreach($data['conditions'] as $field => $value) {
+					$params[$field . $i] = $value;
+				}
+			}
+		}
+		return $params;
+	}
+	
+	
 	
 	
 	
@@ -201,14 +229,12 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	
 	
 	/**
-	 * Execute and return current active query result set
-	 * @param boolean $clearActiveQuery Clears current active query content if true
+	 * Execute and return query as a collection
+	 * 
+	 * @return mixed Collection object on success, boolean false on failure
 	 */
 	public function execute()
 	{
-		// Build SQL
-		// Prepared Statement
-		// Return ResultSet
-		return $this->mapper->adapterRead()->read($this);
+		return $this->mapper()->adapterRead()->read($this);
 	}
 }
