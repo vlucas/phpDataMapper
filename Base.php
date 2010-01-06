@@ -8,15 +8,21 @@
  */
 class phpDataMapper_Base
 {
-	// Stored adapter connections
-	protected $_adapter;
-	protected $_adapterRead;
-	
 	// Class Names for required classes - Here so they can be easily overridden
 	protected $_entityClass = 'phpDataMapper_Entity';
 	protected $_queryClass = 'phpDataMapper_Query';
 	protected $_collectionClass = 'phpDataMapper_Collection';
 	protected $_exceptionClass = 'phpDataMapper_Exception';
+	
+	// Stored adapter connections
+	protected $_adapter;
+	protected $_adapterRead;
+	
+	// Array of error messages and types
+	protected $_errors = array();
+	
+	// Query log
+	protected static $_queryLog = array();
 	
 	// Store cached field info
 	protected $_fields = array();
@@ -43,12 +49,6 @@ class phpDataMapper_Base
 	
 	======================
 	*/
-	
-	// Array of error messages and types
-	protected $_errors = array();
-	
-	// Query log
-	protected static $_queryLog = array();
 	
 	
 	/**
@@ -104,6 +104,39 @@ class phpDataMapper_Base
 		} else {
 			return $this->_adapter;
 		}
+	}
+	
+	
+	/**
+	 * Get entity class name to use
+	 * 
+	 * @return string
+	 */
+	public function entityClass()
+	{
+		return $this->_entityClass;
+	}
+	
+	
+	/**
+	 * Get query class name to use
+	 * 
+	 * @return string
+	 */
+	public function queryClass()
+	{
+		return $this->_queryClass;
+	}
+	
+	
+	/**
+	 * Get collection class name to use
+	 * 
+	 * @return string
+	 */
+	public function collectionClass()
+	{
+		return $this->_collectionClass;
 	}
 	
 	
