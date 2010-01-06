@@ -22,7 +22,7 @@ class phpDataMapper_Entity
 	{
 		// Set given data
 		if($data !== null) {
-			$this->setData($data);
+			$this->data($data);
 		}
 		
 		// Mark record as loaded
@@ -43,13 +43,22 @@ class phpDataMapper_Entity
 	
 	
 	/**
-	 * Returns array of key => value pairs for row data
-	 * 
-	 * @return array
+	 *	Sets an object or array
 	 */
-	public function getData()
+	public function data($data = null)
 	{
-		return array_merge($this->_data, $this->_dataModified);
+		if(null !== $data) {
+			if(is_object($data) || is_array($data)) {
+				foreach($data as $k => $v) {
+					$this->$k = $v;
+				}
+				return true;
+			} else {
+				throw new InvalidArgumentException(__METHOD__ . " Expected array or object input - " . gettype($data) . " given");
+			}
+		} else {
+			return $this->toArray();
+		}
 	}
 	
 	
@@ -58,25 +67,20 @@ class phpDataMapper_Entity
 	 * 
 	 * @return array
 	 */
-	public function getDataModified()
+	public function dataModified()
 	{
 		return $this->_dataModified;
 	}
 	
 	
 	/**
-	 *	Sets an object or array
+	 * Returns array of key => value pairs for row data
+	 * 
+	 * @return array
 	 */
-	public function setData($data)
+	public function toArray()
 	{
-		if(is_object($data) || is_array($data)) {
-			foreach($data as $k => $v) {
-				$this->$k = $v;
-			}
-			return true;
-		} else {
-			throw new InvalidArgumentException(__METHOD__ . " Expected array or object input - " . gettype($data) . " given");
-		}
+		return array_merge($this->_data, $this->_dataModified);
 	}
 	
 	
@@ -124,8 +128,6 @@ class phpDataMapper_Entity
 				return null;
 			}
 		}
-		
-		echo "Got down here... somehow...";
 	}
 	
 	

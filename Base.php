@@ -238,10 +238,10 @@ class phpDataMapper_Base
 	/**
 	 * Get value of primary key for given row result
 	 */
-	public function primaryKey(phpDataMapper_Entity $row)
+	public function primaryKey(phpDataMapper_Entity $entity)
 	{
 		$pkField = $this->primaryKeyField();
-		return $row->$pkField;
+		return $entity->$pkField;
 	}
 	
 	
@@ -283,7 +283,7 @@ class phpDataMapper_Base
 	/**
 	 * Load defined relations 
 	 */
-	public function getRelationsFor(phpDataMapper_Entity $row)
+	public function getRelationsFor(phpDataMapper_Entity $entity)
 	{
 		$relatedColumns = array();
 		if(count($this->relations()) > 0) {
@@ -295,7 +295,7 @@ class phpDataMapper_Base
 					// Load foreign keys with data from current row
 					$foreignKeys = array_flip($relation['foreign_keys']);
 					foreach($foreignKeys as $relationCol => $col) {
-						$foreignKeys[$relationCol] = $row->$col;
+						$foreignKeys[$relationCol] = $entity->$col;
 					}
 					
 					// Create new instance of mapper
@@ -328,27 +328,27 @@ class phpDataMapper_Base
 			$stmt->setFetchMode(PDO::FETCH_CLASS, $this->entityClass, array());
 			
 			// Fetch all results into new DataMapper_Result class
-			while($row = $stmt->fetch(PDO::FETCH_CLASS)) {
+			while($entity = $stmt->fetch(PDO::FETCH_CLASS)) {
 				
 				// Load relations for this row
-				$relations = $this->getRelationsFor($row);
+				$relations = $this->getRelationsFor($entity);
 				if($relations && is_array($relations) && count($relations) > 0) {
 					foreach($relations as $relationCol => $relationObj) {
-						$row->$relationCol = $relationObj;
+						$entity->$relationCol = $relationObj;
 					}
 				}
 				
 				// Store in array for ResultSet
-				$results[] = $row;
+				$results[] = $entity;
 				
 				// Store primary key of each unique record in set
-				$pk = $this->primaryKey($row);
+				$pk = $this->primaryKey($entity);
 				if(!in_array($pk, $resultsIdentities) && !empty($pk)) {
 					$resultsIdentities[] = $pk;
 				}
 				
 				// Mark row as loaded
-				$row->loaded(true);
+				$entity->loaded(true);
 			}
 			// Ensure set is closed
 			$stmt->closeCursor();
@@ -382,9 +382,9 @@ class phpDataMapper_Base
 	public function first(array $conditions = array())
 	{
 		$query = $this->select()->where($conditions)->limit(1);
-		$rows = $this->adapterRead()->read($query);
-		if($rows) {
-			return $rows->first();
+		$entitys = $this->adapterRead()->read($query);
+		if($entitys) {
+			return $entitys->first();
 		} else {
 			return false;
 		}
@@ -437,10 +437,10 @@ class phpDataMapper_Base
 	/**
 	 * Save related rows of data
 	 */
-	protected function saveRelatedRowsFor($row, array $fillData = array())
+	protected function saveRelatedRowsFor($entity, array $fillData = array())
 	{
-		$relationColumns = $this->getRelationsFor($row);
-		foreach($row->getData() as $field => $value) {
+		$relationColumns = $this->getRelationsFor($entity);
+		foreach($entity->toArray() as $field => $value) {
 			if($relationColumns && array_key_exists($field, $relationColumns) && (is_array($value) || is_object($value))) {
 				foreach($value as $relatedRow) {
 					// Determine relation object
@@ -461,9 +461,9 @@ class phpDataMapper_Base
 					}
 					
 					// Set column values on row only if other data has been updated (prevents queries for unchanged existing rows)
-					if(count($relatedRowObj->getDataModified()) > 0) {
-						$fillData = array_merge($relatedObj->getForeignKeys(), $fillData);
-						$relatedRowObj->setData($fillData);
+					if(count($relatedRowObj->dataModified()) > 0) {
+						$fillData = array_merge($relatedObj->foreignKeys(), $fillData);
+						$relatedRowObj->data($fillData);
 					}
 					
 					// Save related row
@@ -477,17 +477,17 @@ class phpDataMapper_Base
 	/**
 	 * Save result object
 	 */
-	public function save(phpDataMapper_Entity $row)
+	public function save(phpDataMapper_Entity $entity)
 	{
 		// Run validation
-		if($this->validate($row)) {
-			$pk = $this->primaryKey($row);
+		if($this->validate($entity)) {
+			$pk = $this->primaryKey($entity);
 			// No primary key, insert
 			if(empty($pk)) {
-				$result = $this->insert($row);
+				$result = $this->insert($entity);
 			// Has primary key, update
 			} else {
-				$result = $this->update($row);
+				$result = $this->update($entity);
 			}
 		} else {
 			$result = false;
@@ -500,11 +500,11 @@ class phpDataMapper_Base
 	/**
 	 * Insert given row object with set properties
 	 */
-	public function insert(phpDataMapper_Entity $row)
+	public function insert(phpDataMapper_Entity $entity)
 	{
 		$data = array();
-		$rowData = $row->getData();
-		foreach($rowData as $field => $value) {
+		$entityData = $entity->toArray();
+		foreach($entityData as $field => $value) {
 			if($this->fieldExists($field)) {
 				// Empty values will be NULL (easier to be handled by databases)
 				$data[$field] = $this->isEmpty($value) ? null : $value;
@@ -513,17 +513,17 @@ class phpDataMapper_Base
 		
 		// Ensure there is actually data to update
 		if(count($data) > 0) {
-			$result = $this->adapter->create($this->getSourceName(), $data);
+			$result = $this->adapter()->create($this->source(), $data);
 			// Update primary key on row
 			$pkField = $this->primaryKeyField();
-			$row->$pkField = $result;
+			$entity->$pkField = $result;
 		} else {
 			$result = false;
 		}
 		
 		// Save related rows
 		if($result) {
-			$this->saveRelatedRowsFor($row);
+			$this->saveRelatedRowsFor($entity);
 		}
 		
 		return $result;
@@ -533,11 +533,11 @@ class phpDataMapper_Base
 	/**
 	 * Update given row object
 	 */
-	public function update(phpDataMapper_Entity $row)
+	public function update(phpDataMapper_Entity $entity)
 	{
 		// Ensure fields exist to prevent errors
 		$binds = array();
-		foreach($row->getDataModified() as $field => $value) {
+		foreach($entity->dataModified() as $field => $value) {
 			if($this->fieldExists($field)) {
 				// Empty values will be NULL (easier to be handled by databases)
 				$binds[$field] = $this->isEmpty($value) ? null : $value;
@@ -545,11 +545,11 @@ class phpDataMapper_Base
 		}
 		
 		// Handle with adapter
-		$result = $this->adapter()->update($this->getSourceName(), $binds, array($this->primaryKeyField() => $this->primaryKey($row)));
+		$result = $this->adapter()->update($this->getSourceName(), $binds, array($this->primaryKeyField() => $this->primaryKey($entity)));
 		
 		// Save related rows
 		if($result) {
-			$this->saveRelatedRowsFor($row);
+			$this->saveRelatedRowsFor($entity);
 		}
 		
 		return $result;
@@ -557,23 +557,21 @@ class phpDataMapper_Base
 	
 	
 	/**
-	 * Destroy/Delete given row object
-	 */
-	public function destroy(phpDataMapper_Entity $row)
-	{
-		$conditions = array($this->primaryKeyField() => $this->primaryKey($row));
-		return $this->delete($conditions);
-	}
-	
-	
-	/**
-	 * Delete rows matching given conditions
+	 * Delete items matching given conditions
 	 *
-	 * @param array $conditions Array of conditions in column => value pairs
+	 * @param mixed $conditions Array of conditions in column => value pairs or Entity object
 	 */
-	public function delete(array $conditions)
+	public function delete($conditions)
 	{
-		return $this->adapter()->delete($this->getSourceName(), $conditions);
+		if($conditions instanceof phpDataMapper_Entity) {
+			$conditions = array($this->primaryKeyField() => $this->primaryKey($conditions));
+		}
+		
+		if(is_array($conditions)) {
+			return $this->adapter()->delete($this->source(), $conditions);
+		} else {
+			throw new $this->_exceptionClass("Delete conditions must be entity object or array");
+		}
 	}
 	
 	
@@ -582,7 +580,7 @@ class phpDataMapper_Base
 	 * Should delete all rows and reset serial/auto_increment keys to 0
 	 */
 	public function truncateTable() {
-		return $this->adapter()->truncateTable($this->getSourceName());
+		return $this->adapter()->truncateTable($this->source());
 	}
 	
 	
@@ -591,7 +589,7 @@ class phpDataMapper_Base
 	 * Destructive and dangerous - drops entire table and all data
 	 */
 	public function dropTable() {
-		return $this->adapter()->dropTable($this->getSourceName());
+		return $this->adapter()->dropTable($this->source());
 	}
 	
 	
@@ -600,13 +598,13 @@ class phpDataMapper_Base
 	 * 
 	 * @todo A LOT more to do here... More validation, break up into classes with rules, etc.
 	 */
-	public function validate(phpDataMapper_Entity $row)
+	public function validate(phpDataMapper_Entity $entity)
 	{
 		// Check validation rules on each feild
 		foreach($this->fields() as $field => $fieldAttrs) {
 			if(isset($fieldAttrs['required']) && true === $fieldAttrs['required']) {
 				// Required field
-				if(empty($row->$field)) {
+				if(empty($entity->$field)) {
 					$this->addError("Required field '" . $field . "' was left blank");
 				}
 			}
@@ -686,26 +684,6 @@ class phpDataMapper_Base
 	
 	
 	/**
-	 * Shortcut function to get current adapter's FORMAT_DATE
-	 * Should return date only
-	 */
-	public function getDateFormat()
-	{
-		return $this->adapter->getDateFormat();
-	}
-	
-	
-	/**
-	 * Shortcut function to get current adapter's FORMAT_DATETIME
-	 * Should return full date and time
-	 */
-	public function getDateTimeFormat()
-	{
-		return $this->adapter->getDateTimeFormat();
-	}
-	
-	
-	/**
 	 * Attempt to load class file based on phpDataMapper naming conventions
 	 */
 	public static function loadClass($className)
@@ -735,7 +713,7 @@ class phpDataMapper_Base
 	/**
 	 * Prints all executed SQL queries - useful for debugging
 	 */
-	public function debug($row = null)
+	public function debug($entity = null)
 	{
 		echo "<p>Executed " . $this->queryCount() . " queries:</p>";
 		echo "<pre>\n";

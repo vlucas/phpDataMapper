@@ -247,7 +247,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		phpDataMapper_Base::logQuery($sql, $binds);
 		
 		// Prepare update query
-		$stmt = $this->prepare($sql);
+		$stmt = $this->connection()->prepare($sql);
 		
 		if($stmt) {
 			// Bind values to columns
