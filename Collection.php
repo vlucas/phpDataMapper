@@ -41,22 +41,28 @@ class phpDataMapper_Collection implements Iterator, Countable, ArrayAccess
 	/**
 	 * ResultSet to array using given key/value columns
 	 */
-	public function toArray($keyColumn, $valueColumn)
+	public function toArray($keyColumn = null, $valueColumn = null)
 	{
-		$return = array();
-		foreach($this->results as $row) {
-			$return[$row->$keyColumn] = $row->$valueColumn;
+		// Both empty
+		if(null === $keyColumn && null === $valueColumn) {
+			$return = $this->results;
+		
+		// Key column name
+		} elseif(null !== $keyColumn && null === $valueColumn) {
+			$return = array();
+			foreach($this->results as $row) {
+				$return[] = $row->$keyColumn;
+			}
+		
+		// Both key and valud columns filled in
+		} else {
+			$return = array();
+			foreach($this->results as $row) {
+				$return[$row->$keyColumn] = $row->$valueColumn;
+			}
 		}
+		
 		return $return;
-	}
-	
-	
-	/**
-	 * Returns results array
-	 */
-	public function getResults()
-	{
-		return $this->results;
 	}
 	
 	
