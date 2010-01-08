@@ -20,18 +20,21 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 	
 	// Map datamapper field types to actual database adapter types
 	// @todo Have to improve this to allow custom types, callbacks, and validation
-	protected $fieldTypeMap = array(
-		'string' => 'varchar',
-		'text' => 'text',
-		'int' => 'int',
-		'integer' => 'int',
-		'bool' => 'tinyint',
-		'boolean' => 'tinyint',
-		'float' => 'float',
-		'double' => 'double',
-		'date' => 'date',
-		'datetime' => 'datetime',
-		'time' => 'time'
+	protected $_fieldTypeMap = array(
+		'string' => array(
+			'adapter_type' => 'varchar',
+			'length' => 255
+			),
+		'text' => array('adapter_type' => 'text'),
+		'int' => array('adapter_type' => 'int'),
+		'integer' => array('adapter_type' => 'int'),
+		'bool' => array('adapter_type' => 'tinyint', 'length' => 1),
+		'boolean' => array('adapter_type' => 'tinyint', 'length' => 1),
+		'float' => array('adapter_type' => 'float'),
+		'double' => array('adapter_type' => 'double'),
+		'date' => array('adapter_type' => 'date'),
+		'datetime' => array('adapter_type' => 'datetime'),
+		'time' => array('adapter_type' => 'time')
 		);
 	
 	
@@ -99,13 +102,15 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 	 */
 	public function migrateSyntaxFieldCreate($fieldName, array $fieldInfo)
 	{
+		$fieldInfo = array_merge($fieldInfo, $this->_fieldTypeMap[$fieldInfo['type']]);
+		
 		$syntax = "`" . $fieldName . "` " . $fieldInfo['adapter_type'];
 		// Column type and length
 		$syntax .= ($fieldInfo['length']) ? '(' . $fieldInfo['length'] . ')' : '';
 		// Unsigned
 		$syntax .= ($fieldInfo['unsigned']) ? ' unsigned' : '';
 		// Collate
-		$syntax .= ($fieldInfo['type'] == 'string' || $fieldInfo['type'] == 'text') ? ' COLLATE ' . $this->collate : '';
+		$syntax .= ($fieldInfo['type'] == 'string' || $fieldInfo['type'] == 'text') ? ' COLLATE ' . $this->_collate : '';
 		// Nullable
 		$isNullable = true;
 		if($fieldInfo['required'] || !$fieldInfo['null']) {
@@ -167,7 +172,7 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 		}
 		
 		// Extra
-		$syntax .= "\n) ENGINE=" . $this->engine . " DEFAULT CHARSET=" . $this->charset . " COLLATE=" . $this->collate . ";";
+		$syntax .= "\n) ENGINE=" . $this->_engine . " DEFAULT CHARSET=" . $this->_charset . " COLLATE=" . $this->_collate . ";";
 		
 		return $syntax;
 	}

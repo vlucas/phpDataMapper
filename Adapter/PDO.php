@@ -124,7 +124,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 */
 	public function escape($string)
 	{
-		return $this->connection->quote($string);
+		return $this->connection()->quote($string);
 	}
 	
 	
@@ -176,7 +176,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Get syntax for table with fields/columns
 		$sql = $this->migrateSyntaxTableCreate($table, $formattedFields, $columnsSyntax);
 		// Run SQL
-		$this->getConnection()->exec($sql);
+		$this->connection()->exec($sql);
 		return true;
 	}
 	
@@ -200,7 +200,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			if(isset($formattedFields[$fieldName])) {
 				// TODO: Need to do a more exact comparison and make this non-mysql specific
 				if ( 
-						$this->fieldTypeMap[$formattedFields[$fieldName]['type']] != $columnInfo['DATA_TYPE'] ||
+						$this->_fieldTypeMap[$formattedFields[$fieldName]['type']] != $columnInfo['DATA_TYPE'] ||
 						$formattedFields[$fieldName]['default'] !== $columnInfo['COLUMN_DEFAULT']
 					) {
 					$updateFormattedFields[$fieldName] = $formattedFields[$fieldName];
@@ -212,10 +212,6 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		
 		$columnsSyntax = array();
 		
-		foreach($formattedFields as $fieldName => $fieldInfo) {
-			$columnsSyntax[$fieldName] = $this->migrateSyntaxFieldUpdate($fieldName, $fieldInfo, true);
-		}
-		
 		foreach($updateFormattedFields as $fieldName => $fieldInfo) {
 			$columnsSyntax[$fieldName] = $this->migrateSyntaxFieldUpdate($fieldName, $fieldInfo, false);
 		}
@@ -223,9 +219,9 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Get syntax for table with fields/columns
 		if ( !empty($columnsSyntax) ) {
 			$sql = $this->migrateSyntaxTableUpdate($table, $formattedFields, $columnsSyntax);
-			var_dump( $sql );
+			// var_dump( $sql );
 			// Run SQL
-			$this->getConnection()->exec($sql);
+			$this->connection()->exec($sql);
 		}
 		return true;
 	}
@@ -289,6 +285,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			" . ($conditions ? 'WHERE ' . $conditions : '') . "
 			" . ($query->group ? 'GROUP BY ' . implode(', ', $query->group) : '') . "
 			" . ($order ? 'ORDER BY ' . implode(', ', $order) : '') . "
+			" . ($query->limit ? 'LIMIT ' . $query->limit : '') . " " . ($query->limit && $query->limitOffset ? 'OFFSET ' . $query->limitOffset: '') . "
 			";
 		
 		// Get result set

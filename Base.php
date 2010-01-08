@@ -288,27 +288,34 @@ class phpDataMapper_Base
 		$relatedColumns = array();
 		if(count($this->relations()) > 0) {
 			foreach($this->relations() as $column => $relation) {
-				$mapperName = $relation['mapper'];
-				// Ensure related mapper can be loaded
-				if($loaded = $this->loadClass($mapperName)) {
-					// @todo Fix this to implement new 'self' and 'foreign' keywords in front of columns
-					// Load foreign keys with data from current row
-					$foreignKeys = array_flip($relation['foreign_keys']);
-					foreach($foreignKeys as $relationCol => $col) {
-						$foreignKeys[$relationCol] = $entity->$col;
-					}
-					
-					// Create new instance of mapper
-					$mapper = new $mapperName($this->adapter());
-					
-					// Load relation class
-					$relationClass = 'phpDataMapper_Relation_' . $relation['relation'];
-					if($loadedRel = $this->loadClass($relationClass)) {
-						// Set column equal to relation class instance
-						$relationObj = new $relationClass($mapper, $foreignKeys, $relation);
-						$relatedColumns[$column] = $relationObj;
+				$mapperName = isset($relation['mapper']) ? $relation['mapper'] : false;
+				if(!$mapperName) {
+					throw new $this->_exceptionClass("Relationship mapper for '" . $column . "' has not been defined.");
+				}
+				
+				// Load foreign keys with data from current row
+				// Replace 'entity.[col]' with the column value from the passed entity object
+				$relConditions = array();
+				if(isset($relation['where'])) {
+					foreach($relation['where'] as $relationCol => $col) {
+						if(strpos('entity.', $col) == 0) {
+							$col = str_replace('entity.', '', $col);
+						}
+						$relConditions[$relationCol] = $entity->$col;
 					}
 				}
+				
+				// Create new instance of mapper
+				$mapper = new $mapperName($this->adapter());
+				
+				// Load relation class
+				$relationClass = 'phpDataMapper_Relation_' . $relation['relation'];
+				if($loadedRel = $this->loadClass($relationClass)) {
+					// Set column equal to relation class instance
+					$relationObj = new $relationClass($mapper, $relConditions, $relation);
+					$relatedColumns[$column] = $relationObj;
+				}
+				
 			}
 		}
 		return (count($relatedColumns) > 0) ? $relatedColumns : false;
