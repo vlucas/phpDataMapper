@@ -14,7 +14,7 @@ class phpDataMapper_Relation_HasMany extends phpDataMapper_Relation implements C
 	 */
 	public function all()
 	{
-		return $this->mapper()->all($this->foreignKeys(), $this->getRelationSorting());
+		return $this->mapper()->all($this->conditions())->order($this->relationOrder());
 	}
 	
 	
@@ -23,7 +23,7 @@ class phpDataMapper_Relation_HasMany extends phpDataMapper_Relation implements C
 	 */
 	public function first()
 	{
-		return $this->mapper()->first($this->foreignKeys(), $this->getRelationSorting());
+		return $this->mapper()->all($this->conditions())->order($this->relationOrder())->first();
 	}
 	
 	
@@ -36,7 +36,7 @@ class phpDataMapper_Relation_HasMany extends phpDataMapper_Relation implements C
 	public function count()
 	{
 		// Load related records for current row
-		return count($this->findAllRelation());
+		return count($this->execute());
 	}
 	
 	
@@ -49,36 +49,45 @@ class phpDataMapper_Relation_HasMany extends phpDataMapper_Relation implements C
 	public function getIterator()
 	{
 		// Load related records for current row
-		$data = $this->findAllRelation();
+		$data = $this->execute();
 		return $data ? $data : array();
+	}
+	
+	
+	/**
+	 * Passthrough for method chaining on the Query object
+	 */
+	public function __call($func, $args)
+	{
+		return call_user_func_array(array($this->execute(), $func), $args);
 	}
 	
 	
 	// SPL - ArrayAccess functions
 	// ----------------------------------------------
 	public function offsetExists($key) {
-		$this->findAllRelation();
-		return isset($this->relationRows[$key]);
+		$this->execute();
+		return isset($this->_collection[$key]);
 	}
 	
 	public function offsetGet($key) {
-		$this->findAllRelation();
-		return $this->relationRows[$key];
+		$this->execute();
+		return $this->_collection[$key];
 	}
 	
 	public function offsetSet($key, $value) {
-		$this->findAllRelation();
+		$this->execute();
 		
 		if($key === null) {
-			return $this->relationRows[] = $value;
+			return $this->_collection[] = $value;
 		} else {
-			return $this->relationRows[$key] = $value;
+			return $this->_collection[$key] = $value;
 		}
 	}
 	
 	public function offsetUnset($key) {
-		$this->findAllRelation();
-		unset($this->relationRows[$key]);
+		$this->execute();
+		unset($this->_collection[$key]);
 	}
 	// ----------------------------------------------
 }

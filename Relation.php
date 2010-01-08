@@ -8,11 +8,11 @@
  */
 abstract class phpDataMapper_Relation
 {
-	protected $mapper;
-	protected $foreignKeys;
-	protected $relationData;
-	protected $relationRows = array();
-	protected $relationRowCount;
+	protected $_mapper;
+	protected $_foreignKeys;
+	protected $_relationData;
+	protected $_collection;
+	protected $_relationRowCount;
 	
 	
 	/**
@@ -21,11 +21,11 @@ abstract class phpDataMapper_Relation
 	 * @param object $mapper DataMapper object to query on for relationship data
 	 * @param array $resultsIdentities Array of key values for given result set primary key
 	 */
-	public function __construct(phpDataMapper_Base $mapper, array $foreignKeys, array $relationData)
+	public function __construct(phpDataMapper_Base $mapper, array $conditions, array $relationData)
 	{
-		$this->mapper = $mapper;
-		$this->foreignKeys = $foreignKeys;
-		$this->relationData = $relationData;
+		$this->_mapper = $mapper;
+		$this->_conditions = $conditions;
+		$this->_relationData = $relationData;
 	}
 	
 	
@@ -34,7 +34,7 @@ abstract class phpDataMapper_Relation
 	 */
 	public function mapper()
 	{
-		return $this->mapper;
+		return $this->_mapper;
 	}
 	
 	
@@ -43,9 +43,9 @@ abstract class phpDataMapper_Relation
 	 *
 	 * @return array
 	 */
-	public function foreignKeys()
+	public function conditions()
 	{
-		return $this->foreignKeys;
+		return $this->_conditions;
 	}
 	
 	
@@ -54,9 +54,9 @@ abstract class phpDataMapper_Relation
 	 *
 	 * @return array
 	 */
-	public function getRelationSorting()
+	public function relationOrder()
 	{
-		$sorting = isset($this->relationData['order_by']) ? $this->relationData['order_by'] : array();
+		$sorting = isset($this->_relationData['order']) ? $this->_relationData['order'] : array();
 		return $sorting;
 	}
 	
@@ -82,11 +82,11 @@ abstract class phpDataMapper_Relation
 	/**
 	 * Internal function, caches fetched related rows from all() function call
 	 */
-	protected function findAllRelation()
+	protected function execute()
 	{
-		if(!$this->relationRows) {
-			$this->relationRows = $this->all();
+		if(!$this->_collection) {
+			$this->_collection = $this->all();
 		}
-		return $this->relationRows;
+		return $this->_collection;
 	}
 }

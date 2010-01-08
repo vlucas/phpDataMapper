@@ -14,7 +14,7 @@ class phpDataMapper_Relation_HasOne extends phpDataMapper_Relation
 	 */
 	public function all()
 	{
-		return $this->mapper()->first($this->foreignKeys(), $this->getRelationSorting());
+		return $this->mapper()->all($this->conditions())->order($this->relationOrder())->first();
 	}
 	
 	
@@ -23,7 +23,7 @@ class phpDataMapper_Relation_HasOne extends phpDataMapper_Relation
 	 */
 	public function __isset($key)
 	{
-		$row = $this->findAllRelation();
+		$row = $this->execute();
 		if($row) {
 			return isset($row->$key);
 		} else {
@@ -37,7 +37,7 @@ class phpDataMapper_Relation_HasOne extends phpDataMapper_Relation
 	 */
 	public function __get($var)
 	{
-		$row = $this->findAllRelation();
+		$row = $this->execute();
 		if($row) {
 			return $row->$var;
 		} else {
@@ -51,7 +51,7 @@ class phpDataMapper_Relation_HasOne extends phpDataMapper_Relation
 	 */
 	public function __set($var, $value)
 	{
-		$row = $this->findAllRelation();
+		$row = $this->execute();
 		if($row) {
 			$row->$var = $value;
 		}
@@ -63,7 +63,7 @@ class phpDataMapper_Relation_HasOne extends phpDataMapper_Relation
 	 */
 	public function __call($func, $args)
 	{
-		$row = $this->findAllRelation();
+		$row = $this->execute();
 		if($row) {
 			return call_user_func_array(array($row, $func), $args);
 		} else {
