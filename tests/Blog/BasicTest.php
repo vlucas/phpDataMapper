@@ -38,7 +38,7 @@ class Blog_BasicTest extends PHPUnit_Framework_TestCase
 	
 	public function testAdapterInstance()
 	{
-		$this->assertTrue($this->adapter instanceof phpDataMapper_Adapter_Interface);
+		$this->assertTrue(fixture_adapter() instanceof phpDataMapper_Adapter_Interface);
 	}
 	
 	public function testMapperInstance()
@@ -63,7 +63,7 @@ class Blog_BasicTest extends PHPUnit_Framework_TestCase
 		$mapper = $this->blogMapper;
 		$post = $mapper->first(array('title' => "Test Post"));
 		
-		$this->assertTrue($post instanceof phpDataMapper_Row);
+		$this->assertTrue($post instanceof phpDataMapper_Entity);
 		
 		$post->title = "Test Post Modified";
 		$result = $mapper->update($post); // returns boolean
