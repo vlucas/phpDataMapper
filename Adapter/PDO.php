@@ -235,7 +235,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		$binds = $this->statementBinds($data);
 		
 		// build the statement
-		$sql = "INSERT INTO " . $table .
+		$sql = "INSERT INTO " . $source .
 			" (" . implode(', ', array_keys($data)) . ")" .
 			" VALUES(:" . implode(', :', array_keys($binds)) . ")";
 		
@@ -246,12 +246,9 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		$stmt = $this->connection()->prepare($sql);
 		
 		if($stmt) {
-			// Bind values to columns
-			$this->bindValues($stmt, $binds);
-			
 			// Execute
-			if($stmt->execute()) {
-				$result = $this->lastInsertId();
+			if($stmt->execute($binds)) {
+				$result = $this->connection()->lastInsertId();
 			} else {
 				$result = false;
 			}
@@ -313,7 +310,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	/**
 	 * Update entity
 	 */
-	public function update($table, array $data, array $where = array())
+	public function update($source, array $data, array $where = array())
 	{
 		// Get "col = :col" pairs for the update query
 		$placeholders = array();
@@ -335,7 +332,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Ensure there are actually updated values on THIS table
 		if(count($binds) > 0) {
 			// Build the query
-			$sql = "UPDATE " . $table .
+			$sql = "UPDATE " . $source .
 				" SET " . implode(', ', $placeholders) .
 				" WHERE " . implode(' AND ', $sqlWheres);
 			
@@ -344,9 +341,6 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			
 			// Prepare update query
 			$stmt = $this->connection()->prepare($sql);
-			
-			// Bind column values
-			$this->bindValues($stmt, $binds);
 			
 			if($stmt) {
 				// Execute
@@ -375,14 +369,15 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	public function delete($source, array $data)
 	{
 		$binds = $this->statementBinds($data);
+		$conditions = $this->statementConditions($data);
 		
 		$sql = "DELETE FROM " . $source . "";
-		$sql .= $this->statementConditions($data);
+		$sql .= ($conditions ? ' WHERE ' . $conditions : '');
 		
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql, $binds);
 		
-		$stmt = $this->connection()->prepare($sql, $this->statementsBinds($data));
+		$stmt = $this->connection()->prepare($sql);
 		if($stmt) {
 			// Execute
 			if($stmt->execute($binds)) {
@@ -516,19 +511,29 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		
 		$binds = array();
 		$ci = 0;
-		foreach($conditions as $column => $value) {
-			// Can't bind array of values
-			if(!is_array($value)) {
-				// Column name with comparison operator
-				list($col) = explode(' ', $column);
-				$colParam = str_replace('.', '_', $col) . $ci;
-				
-				// Add to binds array and add to WHERE clause
-				$binds[$colParam] = $value;
+		$loopOnce = false;
+		foreach($conditions as $condition) {
+			if(is_array($condition) && isset($condition['conditions'])) {
+				$subConditions = $condition['conditions'];
+			} else {
+				$subConditions = $conditions;
+				$loopOnce = true;
 			}
-			
-			// Increment ensures column name distinction
-			$ci++;
+			foreach($subConditions as $column => $value) {
+				// Can't bind array of values
+				if(is_string($value)) {
+					// Column name with comparison operator
+					list($col) = explode(' ', $column);
+					$colParam = str_replace('.', '_', $col) . $ci;
+					
+					// Add to binds array and add to WHERE clause
+					$binds[$colParam] = $value;
+				}
+				
+				// Increment ensures column name distinction
+				$ci++;
+			}
+			if($loopOnce) { break; }
 		}
 		return $binds;
 	}
