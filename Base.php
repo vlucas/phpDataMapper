@@ -482,10 +482,22 @@ class phpDataMapper_Base
 	
 	
 	/**
-	 * Save result object
+	 * Save record
+	 * Will update if primary key found, insert if not
+	 * Performs validation automatically before saving record
+	 *
+	 * @param mixed $entity Entity object or array of field => value pairs
 	 */
-	public function save(phpDataMapper_Entity $entity)
+	public function save($entity)
 	{
+		if(is_array($entity)) {
+			$entity = $this->get()->data($entity);
+		}
+		
+		if(!($entity instanceof phpDataMapper_Entity)) {
+			throw new $this->_exceptionClass(__METHOD__ . " first argument must be entity object or array");
+		}
+		
 		// Run validation
 		if($this->validate($entity)) {
 			$pk = $this->primaryKey($entity);
@@ -505,10 +517,20 @@ class phpDataMapper_Base
 	
 	
 	/**
-	 * Insert given row object with set properties
+	 * Insert record
+	 *
+	 * @param mixed $entity Entity object or array of field => value pairs
 	 */
-	public function insert(phpDataMapper_Entity $entity)
+	public function insert($entity)
 	{
+		if(is_array($entity)) {
+			$entity = $this->get()->data($entity);
+		}
+		
+		if(!($entity instanceof phpDataMapper_Entity)) {
+			throw new $this->_exceptionClass(__METHOD__ . " first argument must be entity object or array");
+		}
+		
 		$data = array();
 		$entityData = $entity->toArray();
 		foreach($entityData as $field => $value) {
@@ -552,7 +574,7 @@ class phpDataMapper_Base
 		}
 		
 		// Handle with adapter
-		$result = $this->adapter()->update($this->getSourceName(), $binds, array($this->primaryKeyField() => $this->primaryKey($entity)));
+		$result = $this->adapter()->update($this->source(), $binds, array($this->primaryKeyField() => $this->primaryKey($entity)));
 		
 		// Save related rows
 		if($result) {
@@ -571,13 +593,17 @@ class phpDataMapper_Base
 	public function delete($conditions)
 	{
 		if($conditions instanceof phpDataMapper_Entity) {
-			$conditions = array($this->primaryKeyField() => $this->primaryKey($conditions));
+			$conditions = array(
+				0 => array('conditions' => array($this->primaryKeyField() => $this->primaryKey($conditions)))
+				);
 		}
+		//var_dump($conditions);
+		//exit(" -- STOP -- ");
 		
 		if(is_array($conditions)) {
 			return $this->adapter()->delete($this->source(), $conditions);
 		} else {
-			throw new $this->_exceptionClass("Delete conditions must be entity object or array");
+			throw new $this->_exceptionClass(__METHOD__ . " conditions must be entity object or array, given " . gettype($conditions) . "");
 		}
 	}
 	
