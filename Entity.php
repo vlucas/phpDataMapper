@@ -52,7 +52,7 @@ class phpDataMapper_Entity
 				foreach($data as $k => $v) {
 					$this->$k = $v;
 				}
-				return true;
+				return $this;
 			} else {
 				throw new InvalidArgumentException(__METHOD__ . " Expected array or object input - " . gettype($data) . " given");
 			}
