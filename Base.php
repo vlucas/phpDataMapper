@@ -597,8 +597,6 @@ class phpDataMapper_Base
 				0 => array('conditions' => array($this->primaryKeyField() => $this->primaryKey($conditions)))
 				);
 		}
-		//var_dump($conditions);
-		//exit(" -- STOP -- ");
 		
 		if(is_array($conditions)) {
 			return $this->adapter()->delete($this->source(), $conditions);
