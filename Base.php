@@ -733,9 +733,11 @@ class phpDataMapper_Base
 		}
 		
 		// Ensure required class was loaded
+		/*
 		if(!$loaded) {
 			throw new Exception(__METHOD__ . " Failed: Unable to load class '" . $className . "'!");
 		}
+		*/
 		
 		return $loaded;
 	}
