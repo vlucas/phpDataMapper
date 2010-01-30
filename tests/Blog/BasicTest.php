@@ -14,6 +14,31 @@ class BlogMapper extends phpDataMapper_Base {
 	public $title = array('type' => 'string', 'required' => true);
 	public $body = array('type' => 'text', 'required' => true);
 	public $date_created = array('type' => 'datetime');
+	
+	/*
+	// Hold off on relation tests for now...
+	public $comments = array(
+		'type' => 'relation',
+		'relation' => 'HasMany',
+		'mapper' => 'BlogCommentsMapper',
+		'where' => array('post_id' => 'entity.id'),
+		'order' => array('date_created' => 'ASC')
+		);
+	*/
+}
+/**
+ * Blog Comments Mapper
+ * @todo implement 'BelongsTo' relation for linking back to blog post object
+ */
+class BlogCommentsMapper extends phpDataMapper_Base {
+	protected $source = 'test_blog_comments';
+	
+	public $id = array('type' => 'int', 'primary' => true);
+	public $post_id = array('type' => 'int', 'index' => true);
+	public $name = array('type' => 'string', 'required' => true);
+	public $email = array('type' => 'string', 'required' => true);
+	public $body = array('type' => 'text', 'required' => true);
+	public $date_created = array('type' => 'datetime');
 }
 
 
