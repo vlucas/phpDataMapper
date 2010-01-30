@@ -298,7 +298,7 @@ class phpDataMapper_Base
 				$relConditions = array();
 				if(isset($relation['where'])) {
 					foreach($relation['where'] as $relationCol => $col) {
-						if(strpos('entity.', $col) == 0) {
+						if(is_string($col) && strpos('entity.', $col) == 0) {
 							$col = str_replace('entity.', '', $col);
 						}
 						$relConditions[$relationCol] = $entity->$col;
@@ -543,9 +543,18 @@ class phpDataMapper_Base
 		// Ensure there is actually data to update
 		if(count($data) > 0) {
 			$result = $this->adapter()->create($this->source(), $data);
+			
 			// Update primary key on row
 			$pkField = $this->primaryKeyField();
 			$entity->$pkField = $result;
+			
+			// Load relations for this row so they can be used immediately
+			$relations = $this->getRelationsFor($entity);
+			if($relations && is_array($relations) && count($relations) > 0) {
+				foreach($relations as $relationCol => $relationObj) {
+					$entity->$relationCol = $relationObj;
+				}
+			}
 		} else {
 			$result = false;
 		}
@@ -678,7 +687,7 @@ class phpDataMapper_Base
 	 */
 	public function hasErrors()
 	{
-		return count($this->errors);
+		return count($this->_errors);
 	}
 	
 	
@@ -689,7 +698,7 @@ class phpDataMapper_Base
 	 */
 	public function getErrors()
 	{
-		return $this->errors;
+		return $this->_errors;
 	}
 	
 	
@@ -699,7 +708,7 @@ class phpDataMapper_Base
 	public function addError($msg)
 	{
 		// Add to error array
-		$this->errors[] = $msg;
+		$this->_errors[] = $msg;
 	}
 	
 	
