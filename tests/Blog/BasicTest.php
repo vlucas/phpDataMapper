@@ -3,11 +3,23 @@ require_once dirname(dirname(__FILE__)) . '/init.php';
 
 
 /**
+ *
+ */
+class TestMapper extends phpDataMapper_Base
+{
+	// Auto-migrate upon instantiation
+	public function init()
+	{
+		$this->migrate();
+	}
+}
+
+/**
  * Blog Mapper
  * 
  * @todo Organize this a little better...
  */
-class BlogMapper extends phpDataMapper_Base {
+class BlogMapper extends TestMapper {
 	protected $source = 'test_blog';
 	
 	public $id = array('type' => 'int', 'primary' => true);
@@ -15,8 +27,7 @@ class BlogMapper extends phpDataMapper_Base {
 	public $body = array('type' => 'text', 'required' => true);
 	public $date_created = array('type' => 'datetime');
 	
-	/*
-	// Hold off on relation tests for now...
+	// Each post entity 'hasMany' comment entites
 	public $comments = array(
 		'type' => 'relation',
 		'relation' => 'HasMany',
@@ -24,13 +35,12 @@ class BlogMapper extends phpDataMapper_Base {
 		'where' => array('post_id' => 'entity.id'),
 		'order' => array('date_created' => 'ASC')
 		);
-	*/
 }
 /**
  * Blog Comments Mapper
  * @todo implement 'BelongsTo' relation for linking back to blog post object
  */
-class BlogCommentsMapper extends phpDataMapper_Base {
+class BlogCommentsMapper extends TestMapper {
 	protected $source = 'test_blog_comments';
 	
 	public $id = array('type' => 'int', 'primary' => true);
@@ -54,9 +64,8 @@ class Blog_BasicTest extends PHPUnit_Framework_TestCase
 	 */
 	public function setUp()
 	{
-		// New mapper
+		// New mapper instance
 		$this->blogMapper = new BlogMapper(fixture_adapter());
-		$this->blogMapper->migrate();
 	}
 	public function tearDown() {}
 	
