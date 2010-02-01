@@ -46,6 +46,8 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			// Establish connection
 			try {
 				$this->connection = new PDO($this->dsn(), $this->username, $this->password, $this->options);
+				// Throw exceptions by default
+				$this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 			/*
 			} catch(PDOException $e) {
 				if($e->getCode() == 1049) {
