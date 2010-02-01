@@ -82,6 +82,18 @@ class phpDataMapper_Base
 		if(!$this->fields()) {
 			throw new $this->_exceptionClass("Error: Fields must be defined");
 		}
+		
+		// Call init for extension without overriding constructor
+		$this->init();
+	}
+	
+	
+	/**
+	 * Initialization function, run immediately after __construct() so that the constructor is never overridden
+	 */
+	public function init()
+	{
+		
 	}
 	
 	
