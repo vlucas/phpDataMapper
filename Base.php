@@ -476,7 +476,7 @@ class phpDataMapper_Base
 						
 					// Associative array
 					} elseif(is_array($relatedRow)) {
-						$relatedRowObj = new $this->entityClass($relatedRow);
+						$relatedRowObj = new $this->_entityClass($relatedRow);
 					}
 					
 					// Set column values on row only if other data has been updated (prevents queries for unchanged existing rows)
@@ -595,7 +595,11 @@ class phpDataMapper_Base
 		}
 		
 		// Handle with adapter
-		$result = $this->adapter()->update($this->source(), $binds, array($this->primaryKeyField() => $this->primaryKey($entity)));
+		if(count($binds) > 0) {
+			$result = $this->adapter()->update($this->source(), $binds, array($this->primaryKeyField() => $this->primaryKey($entity)));
+		} else {
+			$result = true;
+		}
 		
 		// Save related rows
 		if($result) {
@@ -657,7 +661,7 @@ class phpDataMapper_Base
 			if(isset($fieldAttrs['required']) && true === $fieldAttrs['required']) {
 				// Required field
 				if(empty($entity->$field)) {
-					$this->addError("Required field '" . $field . "' was left blank");
+					$this->error("Required field '" . $field . "' was left blank");
 				}
 			}
 		}
@@ -704,34 +708,28 @@ class phpDataMapper_Base
 	
 	
 	/**
-	 *	Get array of error messages
+	 * Get array of error messages
 	 *
 	 * @return array
 	 */
-	public function getErrors()
+	public function errors($msgs = null)
 	{
+		if(null !== $msgs) {
+			foreach($msgs as $msg) {
+				$this->error($msg);
+			}
+		}
 		return $this->_errors;
 	}
 	
 	
 	/**
-	 *	Add an error to error messages array
+	 * Add an error to error messages array
 	 */
-	public function addError($msg)
+	public function error($msg)
 	{
 		// Add to error array
 		$this->_errors[] = $msg;
-	}
-	
-	
-	/**
-	 *	Add an array of errors all at once
-	 */
-	public function addErrors(array $msgs)
-	{
-		foreach($msgs as $msg) {
-			$this->addError($msg);
-		}
 	}
 	
 	
