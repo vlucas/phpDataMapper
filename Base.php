@@ -298,23 +298,18 @@ class phpDataMapper_Base
 	public function getRelationsFor(phpDataMapper_Entity $entity)
 	{
 		$relatedColumns = array();
-		if(count($this->relations()) > 0) {
-			foreach($this->relations() as $column => $relation) {
+		$rels = $this->getEntityRelationWithValues($entity);
+		if(count($rels) > 0) {
+			foreach($rels as $column => $relation) {
 				$mapperName = isset($relation['mapper']) ? $relation['mapper'] : false;
 				if(!$mapperName) {
 					throw new $this->_exceptionClass("Relationship mapper for '" . $column . "' has not been defined.");
 				}
 				
-				// Load foreign keys with data from current row
-				// Replace 'entity.[col]' with the column value from the passed entity object
+				// Set conditions for relation query
 				$relConditions = array();
 				if(isset($relation['where'])) {
-					foreach($relation['where'] as $relationCol => $col) {
-						if(is_string($col) && strpos('entity.', $col) == 0) {
-							$col = str_replace('entity.', '', $col);
-						}
-						$relConditions[$relationCol] = $entity->$col;
-					}
+					$relConditions = $relation['where'];
 				}
 				
 				// Create new instance of mapper
@@ -335,6 +330,31 @@ class phpDataMapper_Base
 	
 	
 	/**
+	 * Replace entity value placeholders on relation definitions
+	 * Currently replaces 'entity.[col]' with the column value from the passed entity object
+	 */
+	public function getEntityRelationWithValues(phpDataMapper_Entity $entity)
+	{
+		$rels = $this->relations();
+		if(count($rels) > 0) {
+			foreach($rels as $column => $relation) {
+				// Load foreign keys with data from current row
+				// Replace 'entity.[col]' with the column value from the passed entity object
+				if(isset($relation['where'])) {
+					foreach($relation['where'] as $relationCol => $col) {
+						if(is_string($col) && strpos('entity.', $col) == 0) {
+							$col = str_replace('entity.', '', $col);
+						}
+						$rels[$column]['where'][$relationCol] = $entity->$col;
+					}
+				}
+			}
+		}
+		return $rels;
+	}
+	
+	
+	/**
 	 * Get result set for given PDO Statement
 	 */
 	public function getResultSet($stmt)
@@ -344,7 +364,7 @@ class phpDataMapper_Base
 			$resultsIdentities = array();
 			
 			// Set object to fetch results into
-			$stmt->setFetchMode(PDO::FETCH_CLASS, $this->entityClass, array());
+			$stmt->setFetchMode(PDO::FETCH_CLASS, $this->_entityClass);
 			
 			// Fetch all results into new DataMapper_Result class
 			while($entity = $stmt->fetch(PDO::FETCH_CLASS)) {
@@ -376,7 +396,7 @@ class phpDataMapper_Base
 			
 		} else {
 			return array();
-			//throw new $this->exceptionClass(__METHOD__ . " expected PDOStatement object");
+			//throw new $this->_exceptionClass(__METHOD__ . " expected PDOStatement object");
 		}
 	}
 	
@@ -433,7 +453,7 @@ class phpDataMapper_Base
 			
 			return $r;
 		} else {
-			throw new $this->exceptionClass(__METHOD__ . " Error: Unable to execute SQL query - failed to create prepared statement from given SQL");
+			throw new $this->_exceptionClass(__METHOD__ . " Error: Unable to execute SQL query - failed to create prepared statement from given SQL");
 		}
 		
 	}
