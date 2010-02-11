@@ -42,6 +42,22 @@ class CRUDTest extends PHPUnit_Framework_TestCase
 		$this->assertTrue(is_numeric($result));
 	}
 	
+	public function testSampleNewsInsertWithEmpyNonRequiredFields()
+	{
+		$mapper = $this->blogMapper;
+		$post = $mapper->get();
+		$post->title = "Test Post With Empty Values";
+		$post->body = "<p>Test post here.</p>";
+		$post->date_created = null;
+		try {
+			$result = $mapper->insert($post); // returns an id
+		} catch(Exception $e) {
+			$mapper->debug();
+		}
+		
+		$this->assertTrue(is_numeric($result));
+	}
+	
 	public function testSampleNewsUpdate()
 	{
 		$mapper = $this->blogMapper;

@@ -523,7 +523,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			}
 			foreach($subConditions as $column => $value) {
 				// Can't bind array of values
-				if(is_string($value)) {
+				if(!is_array($value) && !is_object($value)) {
 					// Column name with comparison operator
 					list($col) = explode(' ', $column);
 					$colParam = str_replace('.', '_', $col) . $ci;
