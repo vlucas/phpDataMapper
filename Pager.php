@@ -18,7 +18,7 @@ class phpDataMapper_Pager
 	public function __construct(phpDataMapper_Query $query, $page = 1, $rowsPerPage = 30)
 	{
 		$this->query = $query;
-		$this->mapper = $query->getMapper();
+		$this->mapper = $query->mapper();
 		$this->currentPage = $page;
 		$this->rowsPerPage = $rowsPerPage;
 		$this->query->limit($this->rowsPerPage, $this->getOffset());
