@@ -52,7 +52,7 @@ class phpDataMapper_Pager
 	 */
 	public function getTotalPages()
 	{
-	  $this->query->limit(null, null);
+		$this->query->limit(null, null);
 		$count = $this->query->count();
 		$count =  ceil( $count / $this->rowsPerPage );
 		$this->setRowsPerPage( $this->rowsPerPage );
