@@ -550,7 +550,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 					$colParam = preg_replace('/\W+/', '_', $col) . $ci;
 					
 					// Add to binds array and add to WHERE clause
-					$binds[$colParam] = is_null( $value ) ? 'NULL' : $value;
+					$binds[$colParam] = $value;
 				}
 				
 				// Increment ensures column name distinction
