@@ -76,10 +76,10 @@ class RelationsTest extends PHPUnit_Framework_TestCase
 	/**
 	 * @depends testBlogPostInsert
 	 */
-	public function testBlogCommentsRelationReturnsQueryObject($postId)
+	public function testBlogCommentsRelationReturnsRelationObject($postId)
 	{
 		$post = $this->blogMapper->get($postId);
-		$this->assertTrue($post->comments instanceof phpDataMapper_Query);
+		$this->assertTrue($post->comments instanceof phpDataMapper_Relation);
 	}
 	
 	/**
