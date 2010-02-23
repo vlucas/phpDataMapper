@@ -173,7 +173,7 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 		foreach($this->conditions as $i => $data) {
 			if(isset($data['conditions']) && is_array($data['conditions'])) {
 				foreach($data['conditions'] as $field => $value) {
-					$params[$field . $i] = $value;
+					$params[$field] = $value;
 				}
 			}
 		}

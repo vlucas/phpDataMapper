@@ -230,12 +230,19 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	
 	
 	/**
+	 * Prepare an SQL statement 
+	 */
+	public function prepare($sql)
+	{
+		return $this->connection()->prepare($sql);
+	}
+	
+	/**
 	 * Create new row object with set properties
 	 */
 	public function create($source, array $data)
 	{
 		$binds = $this->statementBinds($data);
-		
 		// build the statement
 		$sql = "INSERT INTO " . $source .
 			" (" . implode(', ', array_keys($data)) . ")" .
@@ -271,6 +278,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	public function read(phpDataMapper_Query $query)
 	{
 		$conditions = $this->statementConditions($query->conditions);
+		$binds = $this->statementBinds($query->params());
 		$order = array();
 		if($query->order) {
 			foreach($query->order as $oField => $oSort) {
@@ -290,14 +298,14 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Get result set
 		
 		// Add query to log
-		phpDataMapper_Base::logQuery($sql, $query->params());
+		phpDataMapper_Base::logQuery($sql, $binds);
 		
 		// Prepare update query
 		$stmt = $this->connection()->prepare($sql);
 		
 		if($stmt) {
 			// Execute
-			if($stmt->execute($query->params())) {
+			if($stmt->execute($binds)) {
 				$result = $this->toCollection($query, $stmt);
 			} else {
 				$result = false;
@@ -467,13 +475,18 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	{
 		if(count($conditions) == 0) { return; }
 		
-		$sqlWhere = array();
+		$sqlStatement = "";
 		$defaultColOperators = array(0 => '', 1 => '=');
 		$ci = 0;
 		foreach($conditions as $condition) {
+			$sqlWhere = array();
 			foreach($condition['conditions'] as $column => $value) {
 				// Column name with comparison operator
 				$colData = explode(' ', $column);
+				if ( count( $colData ) > 2 ) {
+					$operator = array_pop( $colData );
+					$colData = array( join(' ', $colData), $operator );
+				}
 				$col = $colData[0];
 				
 				// Array of values, assume IN clause
@@ -490,17 +503,20 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 					$columnSql = $col . ' ' . $colComparison;
 					
 					// Add to binds array and add to WHERE clause
-					$colParam = str_replace('.', '_', $col) . $ci;
+					$colParam = preg_replace('/\W+/', '_', $col) . $ci;
 					$sqlWhere[] = $columnSql . " :" . $colParam . "";
 				}
 				
 				// Increment ensures column name distinction
 				$ci++;
 			}
+			if ( $sqlStatement != "" ) {
+				$sqlStatement .= " {$condition['setType']} ";
+			}
+			$sqlStatement .= join(" {$condition['type']} ", $sqlWhere );
 		}
 		
-		$sql = empty($sqlWhere) ? "" : implode(' AND ', $sqlWhere);
-		return $sql;
+		return $sqlStatement;
 	}
 	
 	
@@ -525,11 +541,16 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 				// Can't bind array of values
 				if(!is_array($value) && !is_object($value)) {
 					// Column name with comparison operator
-					list($col) = explode(' ', $column);
-					$colParam = str_replace('.', '_', $col) . $ci;
+					$colData = explode(' ', $column);
+					if ( count( $colData ) > 2 ) {
+						$operator = array_pop( $colData );
+						$colData = array( join(' ', $colData), $operator );
+					}
+					$col = $colData[0];
+					$colParam = preg_replace('/\W+/', '_', $col) . $ci;
 					
 					// Add to binds array and add to WHERE clause
-					$binds[$colParam] = $value;
+					$binds[$colParam] = is_null( $value ) ? 'NULL' : $value;
 				}
 				
 				// Increment ensures column name distinction
