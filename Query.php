@@ -215,16 +215,26 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	
 	
 	/**
-	 * Convenience function passthrough for ResultSet
-	 * Triggers execute() and empties current active query
+	 * Convenience function passthrough for Collection
 	 *
 	 * @return array 
 	 */
 	public function toArray($keyColumn = null, $valueColumn = null)
 	{
-		// Execute query and call the 'toArray' function on the ResultSet
 		$result = $this->execute();
 		return ($result !== false) ? $result->toArray($keyColumn, $valueColumn) : array();
+	}
+	
+	
+	/**
+	 * Return the first entity matched by the query
+	 *
+	 * @return mixed phpDataMapper_Entity on success, boolean false on failure
+	 */
+	public function first()
+	{
+		$result = $this->limit(1)->execute();
+		return ($result !== false) ? $result->first() : false;
 	}
 	
 	
