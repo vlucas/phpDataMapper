@@ -511,9 +511,10 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 				$ci++;
 			}
 			if ( $sqlStatement != "" ) {
-				$sqlStatement .= " {$condition['setType']} ";
+				$sqlStatement .= " " . (isset($condition['setType']) ? $condition['setType'] : 'AND') . " ";
 			}
-			$sqlStatement .= join(" {$condition['type']} ", $sqlWhere );
+			//var_dump($condition);
+			$sqlStatement .= join(" " . (isset($condition['type']) ? $condition['type'] : 'AND') . " ", $sqlWhere );
 		}
 		
 		return $sqlStatement;

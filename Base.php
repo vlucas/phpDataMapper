@@ -44,7 +44,7 @@ class phpDataMapper_Base
 		'type' => 'relation',
 		'relation' => 'HasMany',
 		'mapper' => 'CommentsModel',
-		'where' => array('self.id' => 'foreign.comment_id'),
+		'where' => array('comment_id' => 'entity.id'),
 		);
 	
 	======================
@@ -681,7 +681,7 @@ class phpDataMapper_Base
 			if(isset($fieldAttrs['required']) && true === $fieldAttrs['required']) {
 				// Required field
 				if(empty($entity->$field)) {
-					$this->error("Required field '" . $field . "' was left blank");
+					$this->error($field, "Required field '" . $field . "' was left blank");
 				}
 			}
 		}
@@ -719,10 +719,14 @@ class phpDataMapper_Base
 	/**
 	 * Check if any errors exist
 	 * 
+	 * @param string $field OPTIONAL field name 
 	 * @return boolean
 	 */
-	public function hasErrors()
+	public function hasErrors($field = null)
 	{
+		if(null !== $field) {
+			return isset($this->_errors[$field]) ? count($this->_errors[$field]) : false;
+		}
 		return count($this->_errors);
 	}
 	
@@ -734,9 +738,14 @@ class phpDataMapper_Base
 	 */
 	public function errors($msgs = null)
 	{
-		if(null !== $msgs) {
-			foreach($msgs as $msg) {
-				$this->error($msg);
+		// Return errors for given field
+		if(is_string($msgs)) {
+			return isset($this->_errors[$field]) ? $this->_errors[$field] : array();
+		
+		// Set error messages from given array
+		} elseif(is_array($msgs)) {
+			foreach($msgs as $field => $msg) {
+				$this->error($field, $msg);
 			}
 		}
 		return $this->_errors;
@@ -745,11 +754,21 @@ class phpDataMapper_Base
 	
 	/**
 	 * Add an error to error messages array
+	 *
+	 * @param string $field Field name that error message relates to
+	 * @param mixed $msg Error message text - String or array of messages
 	 */
-	public function error($msg)
+	public function error($field, $msg)
 	{
-		// Add to error array
-		$this->_errors[] = $msg;
+		if(is_array($msg)) {
+			// Add array of error messages about field
+			foreach($msg as $msgx) {
+				$this->_errors[$field][] = $msgx;
+			}
+		} else {
+			// Add to error array
+			$this->_errors[$field][] = $msg;
+		}
 	}
 	
 	
