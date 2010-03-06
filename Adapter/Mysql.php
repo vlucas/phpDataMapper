@@ -78,10 +78,10 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 	 * @param String $table Table name
 	 * @return Array
 	 */
-	protected function getColumnsForTable($table)
+	protected function getColumnsForTable($table, $source)
 	{
 		$tableColumns = array();
-		$tblCols = $this->connection()->query("SELECT * FROM information_schema.columns WHERE table_name = '" . $table . "'");
+		$tblCols = $this->connection()->query("SELECT * FROM information_schema.columns WHERE table_schema = '" . $source . "' AND table_name = '" . $table . "'");
 		if($tblCols) {
 			while($columnData = $tblCols->fetch(PDO::FETCH_ASSOC)) {
 				$tableColumns[$columnData['COLUMN_NAME']] = $columnData;

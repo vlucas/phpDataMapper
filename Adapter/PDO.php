@@ -139,7 +139,8 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	{
 		// Get current fields for table
 		$tableExists = false;
-		$tableColumns = $this->getColumnsForTable($table);
+		$tableColumns = $this->getColumnsForTable($table, $this->database);
+		var_dump($tableColumns);
 		
 		if($tableColumns) {
 			$tableExists = true;
@@ -177,7 +178,10 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		
 		// Get syntax for table with fields/columns
 		$sql = $this->migrateSyntaxTableCreate($table, $formattedFields, $columnsSyntax);
-		// Run SQL
+		
+		// Add query to log
+		phpDataMapper_Base::logQuery($sql);
+		
 		$this->connection()->exec($sql);
 		return true;
 	}
@@ -221,7 +225,10 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Get syntax for table with fields/columns
 		if ( !empty($columnsSyntax) ) {
 			$sql = $this->migrateSyntaxTableUpdate($table, $formattedFields, $columnsSyntax);
-			// var_dump( $sql );
+			
+			// Add query to log
+			phpDataMapper_Base::logQuery($sql);
+			
 			// Run SQL
 			$this->connection()->exec($sql);
 		}
