@@ -199,7 +199,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		*/
 		
 		// Prepare fields and get syntax for each
-		$tableColumns = $this->getColumnsForTable($table);
+		$tableColumns = $this->getColumnsForTable($table, $this->database);
 		$updateFormattedFields = array();
 		foreach($tableColumns as $fieldName => $columnInfo) {
 			if(isset($formattedFields[$fieldName])) {
