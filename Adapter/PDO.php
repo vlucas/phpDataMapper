@@ -140,7 +140,6 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		// Get current fields for table
 		$tableExists = false;
 		$tableColumns = $this->getColumnsForTable($table, $this->database);
-		var_dump($tableColumns);
 		
 		if($tableColumns) {
 			$tableExists = true;
