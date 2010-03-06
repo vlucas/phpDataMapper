@@ -25,6 +25,22 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 			'adapter_type' => 'varchar',
 			'length' => 255
 			),
+		'email' => array(
+			'adapter_type' => 'varchar',
+			'length' => 255
+			),
+		'url' => array(
+			'adapter_type' => 'varchar',
+			'length' => 255
+			),
+		'tel' => array(
+			'adapter_type' => 'varchar',
+			'length' => 255
+			),
+		'password' => array(
+			'adapter_type' => 'varchar',
+			'length' => 255
+			),
 		'text' => array('adapter_type' => 'text'),
 		'int' => array('adapter_type' => 'int'),
 		'integer' => array('adapter_type' => 'int'),
@@ -102,6 +118,11 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 	 */
 	public function migrateSyntaxFieldCreate($fieldName, array $fieldInfo)
 	{
+		// Ensure field type exists
+		if(!isset($this->_fieldTypeMap[$fieldInfo['type']])) {
+			throw new phpDataMapper_Exception("Field type '" . $fieldInfo['type'] . "' not supported");
+		}
+		
 		$fieldInfo = array_merge($fieldInfo, $this->_fieldTypeMap[$fieldInfo['type']]);
 		
 		$syntax = "`" . $fieldName . "` " . $fieldInfo['adapter_type'];
