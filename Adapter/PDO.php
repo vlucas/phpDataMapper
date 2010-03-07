@@ -301,7 +301,12 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			" . ($query->limit ? 'LIMIT ' . $query->limit : '') . " " . ($query->limit && $query->limitOffset ? 'OFFSET ' . $query->limitOffset: '') . "
 			";
 		
-		// Get result set
+		// Unset any NULL values in binds (compared as "IS NULL" and "IS NOT NULL" in SQL instead)
+		foreach($binds as $field => $value) {
+			if(null === $value) {
+				unset($binds[$field]);
+			}
+		}
 		
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql, $binds);
