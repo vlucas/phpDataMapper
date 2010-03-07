@@ -51,6 +51,7 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 		if(null !== $source) {
 			$this->from($source);
 		}
+		return $this;
 	}
 	
 	
