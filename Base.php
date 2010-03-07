@@ -342,10 +342,10 @@ class phpDataMapper_Base
 				// Replace 'entity.[col]' with the column value from the passed entity object
 				if(isset($relation['where'])) {
 					foreach($relation['where'] as $relationCol => $col) {
-						if(is_string($col) && strpos('entity.', $col) == 0) {
+						if(is_string($col) && strpos($col, 'entity.') !== false) {
 							$col = str_replace('entity.', '', $col);
+							$rels[$column]['where'][$relationCol] = $entity->$col;
 						}
-						$rels[$column]['where'][$relationCol] = $entity->$col;
 					}
 				}
 			}
