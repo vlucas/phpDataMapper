@@ -48,7 +48,9 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	public function select($fields = "*", $source = null)
 	{
 		$this->fields = (is_string($fields) ? explode(',', $fields) : $fields);
-		$this->from($source);
+		if(null !== $source) {
+			$this->from($source);
+		}
 	}
 	
 	
