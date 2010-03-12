@@ -40,28 +40,33 @@ class RelationsTest extends PHPUnit_Framework_TestCase
 	/**
 	 * @depends testBlogPostInsert
 	 */
-	public function testBlogCommentsRelationInsertByArray($postId)
+	public function testBlogCommentsRelationInsertByObject($postId)
 	{
 		$post = $this->blogMapper->get($postId);
+		$commentMapper = fixture_mapper('Blog_Comments');
 		
 		// Array will usually come from POST/JSON data or other source
-		$post->comments = array(
-			0 => array(
+		$commentSaved = false;
+		$comment = $commentMapper->get()
+			->data(array(
 				'post_id' => $postId,
 				'name' => 'Testy McTester',
 				'email' => 'test@test.com',
 				'body' => 'This is a test comment. Yay!',
-				'date_created' => date($this->blogMapper->adapter()->dateTimeFormat())
-				)
-			);
+				'date_created' => date($commentMapper->adapter()->dateTimeFormat())
+			));
 		try {
-			$this->blogMapper->save($post);
+			$commentSaved = $commentMapper->save($comment);
+			if(!$commentSaved) {
+				print_r($commentMapper->errors());
+				$this->fail("Comment NOT saved");
+			}
 		} catch(Exception $e) {
 			echo $e->getTraceAsString();
-			$this->blogMapper->debug();
+			$commentMapper->debug();
 			exit();
 		}
-		$this->assertTrue($post->comments instanceof phpDataMapper_Query);
+		$this->assertTrue($commentSaved !== false);
 	}
 	
 	/**
@@ -89,6 +94,6 @@ class RelationsTest extends PHPUnit_Framework_TestCase
 	{
 		$post = $this->blogMapper->get($postId);
 		$sortedComments = $post->comments->order(array('date_created' => 'DESC'));
-		$this->assertTrue($post->comments instanceof phpDataMapper_Query);
+		$this->assertTrue($sortedComments instanceof phpDataMapper_Query);
 	}
 }
