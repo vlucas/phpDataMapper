@@ -7,6 +7,7 @@ require_once dirname(__FILE__) . '/init.php';
  */
 class CRUDTest extends PHPUnit_Framework_TestCase
 {
+	protected $backupGlobals = false;
 	protected $blogMapper;
 	
 	/**

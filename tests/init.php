@@ -21,7 +21,7 @@ function fixture_adapter()
 	global $fixture_adapter; // Yikes, I know...
 	if($fixture_adapter === null) {
 		// New db connection
-		$fixture_adapter = new phpDataMapper_Adapter_Mysql('localhost', 'test', 'test', 'password');
+		$fixture_adapter = new phpDataMapper_Adapter_Mysql('localhost', 'test', 'root', '');
 	}
 	return $fixture_adapter;
 }
