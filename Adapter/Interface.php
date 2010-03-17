@@ -72,4 +72,32 @@ interface phpDataMapper_Adapter_Interface
 	 * Delete entity
 	 */
 	public function delete($source, array $where);
+	
+	
+	/**
+	 * Truncate data source
+	 * Should delete all rows and reset serial/auto_increment keys to 0
+	 */
+	public function truncateSource($source);
+	
+	/**
+	 * Drop/delete data source
+	 * Destructive and dangerous - drops entire data source and all data
+	 */
+	public function dropSource($source);
+	
+	
+	/**
+	 * Create a database
+ 	 * Will throw errors if user does not have proper permissions
+	 */
+	public function createDatabase($database);
+	
+	
+	/**
+	 * Drop a database table
+	 * Destructive and dangerous - drops entire table and all data
+	 * Will throw errors if user does not have proper permissions
+	 */
+	public function dropDatabase($database);
 }

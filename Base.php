@@ -652,20 +652,20 @@ class phpDataMapper_Base
 	
 	
 	/**
-	 * Truncate a database table
+	 * Truncate data source
 	 * Should delete all rows and reset serial/auto_increment keys to 0
 	 */
-	public function truncateTable() {
-		return $this->adapter()->truncateTable($this->source());
+	public function truncateSource() {
+		return $this->adapter()->truncateSource($this->source());
 	}
 	
 	
 	/**
-	 * Drop a database table
-	 * Destructive and dangerous - drops entire table and all data
+	 * Drop/delete data source
+	 * Destructive and dangerous - drops entire data source and all data
 	 */
-	public function dropTable() {
-		return $this->adapter()->dropTable($this->source());
+	public function dropSource() {
+		return $this->adapter()->dropSource($this->source());
 	}
 	
 	

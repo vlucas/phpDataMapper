@@ -302,9 +302,11 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			";
 		
 		// Unset any NULL values in binds (compared as "IS NULL" and "IS NOT NULL" in SQL instead)
-		foreach($binds as $field => $value) {
-			if(null === $value) {
-				unset($binds[$field]);
+		if($binds && count($binds) > 0) {
+			foreach($binds as $field => $value) {
+				if(null === $value) {
+					unset($binds[$field]);
+				}
 			}
 		}
 		
@@ -417,7 +419,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 * Truncate a database table
 	 * Should delete all rows and reset serial/auto_increment keys to 0
 	 */
-	public function truncateTable($source) {
+	public function truncateSource($source) {
 		$sql = "TRUNCATE TABLE " . $source;
 		
 		// Add query to log
@@ -431,7 +433,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 * Drop a database table
 	 * Destructive and dangerous - drops entire table and all data
 	 */
-	public function dropTable($source) {
+	public function dropSource($source) {
 		$sql = "DROP TABLE " . $source;
 		
 		// Add query to log
