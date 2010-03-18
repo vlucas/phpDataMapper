@@ -10,6 +10,7 @@ abstract class phpDataMapper_Relation
 {
 	protected $_mapper;
 	protected $_foreignKeys;
+	protected $_conditions;
 	protected $_relationData;
 	protected $_collection;
 	protected $_relationRowCount;
