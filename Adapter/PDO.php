@@ -587,7 +587,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			$resultsIdentities = array();
 			
 			// Set object to fetch results into
-			$stmt->setFetchMode(PDO::FETCH_CLASS, $mapper->entityClass(), array());
+			$stmt->setFetchMode(PDO::FETCH_CLASS, $mapper->entityClass());
 			
 			// Fetch all results into new DataMapper_Result class
 			while($row = $stmt->fetch(PDO::FETCH_CLASS)) {
