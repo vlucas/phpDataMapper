@@ -491,9 +491,16 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		$sqlStatement = "";
 		$defaultColOperators = array(0 => '', 1 => '=');
 		$ci = 0;
+		$loopOnce = false;
 		foreach($conditions as $condition) {
+			if(is_array($condition) && isset($condition['conditions'])) {
+				$subConditions = $condition['conditions'];
+			} else {
+				$subConditions = $conditions;
+				$loopOnce = true;
+			}
 			$sqlWhere = array();
-			foreach($condition['conditions'] as $column => $value) {
+			foreach($subConditions as $column => $value) {
 				// Column name with comparison operator
 				$colData = explode(' ', $column);
 				if ( count( $colData ) > 2 ) {
@@ -528,6 +535,8 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			}
 			//var_dump($condition);
 			$sqlStatement .= join(" " . (isset($condition['type']) ? $condition['type'] : 'AND') . " ", $sqlWhere );
+			
+			if($loopOnce) { break; }
 		}
 		
 		return $sqlStatement;
