@@ -11,6 +11,8 @@ class phpDataMapper_Relation_HasMany extends phpDataMapper_Relation implements C
 {
 	/**
 	 * Load records with current relation data
+	 *
+	 * @return phpDataMapper_Query
 	 */
 	public function all()
 	{
@@ -20,10 +22,12 @@ class phpDataMapper_Relation_HasMany extends phpDataMapper_Relation implements C
 	
 	/**
 	 * Find first record in the set
+	 *
+	 * @return phpDataMapper_Entity
 	 */
 	public function first()
 	{
-		return $this->mapper()->all($this->conditions())->order($this->relationOrder())->first();
+		return $this->all()->first();
 	}
 	
 	
