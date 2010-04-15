@@ -75,16 +75,16 @@ interface phpDataMapper_Adapter_Interface
 	
 	
 	/**
-	 * Truncate data source
+	 * Truncate data source (table for SQL)
 	 * Should delete all rows and reset serial/auto_increment keys to 0
 	 */
-	public function truncateSource($source);
+	public function truncateDatasource($source);
 	
 	/**
-	 * Drop/delete data source
+	 * Drop/delete data source (table for SQL)
 	 * Destructive and dangerous - drops entire data source and all data
 	 */
-	public function dropSource($source);
+	public function dropDatasource($source);
 	
 	
 	/**
@@ -95,7 +95,7 @@ interface phpDataMapper_Adapter_Interface
 	
 	
 	/**
-	 * Drop a database table
+	 * Drop an entire database
 	 * Destructive and dangerous - drops entire table and all data
 	 * Will throw errors if user does not have proper permissions
 	 */

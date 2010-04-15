@@ -15,10 +15,10 @@ class ConditionsTest extends PHPUnit_Framework_TestCase
 	public static function setUpBeforeClass()
 	{
 		$blogMapper = fixture_mapper('Blog');
-		$blogMapper->truncateSource();
+		$blogMapper->truncateDatasource();
 		
 		$blogCommentsMapper = fixture_mapper('Blog_Comments');
-		$blogCommentsMapper->truncateSource();
+		$blogCommentsMapper->truncateDatasource();
 		
 		// Insert blog dummy data
 		for( $i = 0; $i < self::num_posts; $i++ ) {
@@ -27,7 +27,6 @@ class ConditionsTest extends PHPUnit_Framework_TestCase
 				'body' => $i,
 				'date_created' => date($blogMapper->adapter()->dateFormat())
 			));
-			//$m->query("INSERT INTO test_blog(title, body, date_created) VALUES('title{$i}', 'body{$i}', '2010-01-{$i}')");
 		}
 	}
 	

@@ -30,7 +30,7 @@ class phpDataMapper_Base
 	protected $_primaryKey;
 	
 	// Data source setup info
-	protected $source;
+	protected $_datasource;
 	/**
 	=== EXAMPLE fields ===
 	
@@ -74,8 +74,8 @@ class phpDataMapper_Base
 		}
 		
 		// Ensure table has been defined
-		if(!$this->source) {
-			throw new $this->_exceptionClass("Error: Source name must be defined - please define the \$source variable. This can be a database table name, a file name, or a URL, depending on your adapter.");
+		if(!$this->_datasource) {
+			throw new $this->_exceptionClass("Error: Datasource name must be defined - please define the \$_datasource variable. This can be a database table name, collection or bucket name, a file name, or a URL, depending on your adapter.");
 		}
 		
 		// Ensure fields have been defined for current table
@@ -155,9 +155,9 @@ class phpDataMapper_Base
 	/**
 	 * Get name of the data source
 	 */
-	public function source()
+	public function datasource()
 	{
-		return $this->source;
+		return $this->_datasource;
 	}
 	
 	
@@ -468,7 +468,7 @@ class phpDataMapper_Base
 	public function select($fields = "*")
 	{
 		$query = new $this->_queryClass($this);
-		$query->select($fields, $this->source());
+		$query->select($fields, $this->datasource());
 		return $query;
 	}
 	
@@ -574,7 +574,7 @@ class phpDataMapper_Base
 		
 		// Ensure there is actually data to update
 		if(count($data) > 0) {
-			$result = $this->adapter()->create($this->source(), $data);
+			$result = $this->adapter()->create($this->datasource(), $data);
 			
 			// Update primary key on row
 			$pkField = $this->primaryKeyField();
@@ -616,7 +616,7 @@ class phpDataMapper_Base
 		
 		// Handle with adapter
 		if(count($binds) > 0) {
-			$result = $this->adapter()->update($this->source(), $binds, array($this->primaryKeyField() => $this->primaryKey($entity)));
+			$result = $this->adapter()->update($this->datasource(), $binds, array($this->primaryKeyField() => $this->primaryKey($entity)));
 		} else {
 			$result = true;
 		}
@@ -644,7 +644,7 @@ class phpDataMapper_Base
 		}
 		
 		if(is_array($conditions)) {
-			return $this->adapter()->delete($this->source(), $conditions);
+			return $this->adapter()->delete($this->datasource(), $conditions);
 		} else {
 			throw new $this->_exceptionClass(__METHOD__ . " conditions must be entity object or array, given " . gettype($conditions) . "");
 		}
@@ -655,8 +655,8 @@ class phpDataMapper_Base
 	 * Truncate data source
 	 * Should delete all rows and reset serial/auto_increment keys to 0
 	 */
-	public function truncateSource() {
-		return $this->adapter()->truncateSource($this->source());
+	public function truncateDatasource() {
+		return $this->adapter()->truncateDatasource($this->datasource());
 	}
 	
 	
@@ -664,8 +664,8 @@ class phpDataMapper_Base
 	 * Drop/delete data source
 	 * Destructive and dangerous - drops entire data source and all data
 	 */
-	public function dropSource() {
-		return $this->adapter()->dropSource($this->source());
+	public function dropDatasource() {
+		return $this->adapter()->dropDatasource($this->datasource());
 	}
 	
 	
@@ -700,7 +700,7 @@ class phpDataMapper_Base
 	 */
 	public function migrate()
 	{
-		return $this->adapter()->migrate($this->source(), $this->fields());
+		return $this->adapter()->migrate($this->datasource(), $this->fields());
 	}
 	
 	

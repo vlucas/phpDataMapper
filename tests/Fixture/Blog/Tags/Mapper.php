@@ -5,7 +5,7 @@
  */
 class Fixture_Blog_Tags_Mapper extends TestMapper
 {
-	protected $source = 'test_blog_tags';
+	protected $_datasource = 'test_blog_tags';
 	
 	public $post_id = array('type' => 'int', 'primary' => true, 'serial' => true);
 	public $tag_id = array('type' => 'int', 'key' => true);

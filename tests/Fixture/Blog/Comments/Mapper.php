@@ -5,7 +5,7 @@
  */
 class Fixture_Blog_Comments_Mapper extends TestMapper
 {
-	protected $source = 'test_blog_comments';
+	protected $_datasource = 'test_blog_comments';
 	
 	public $id = array('type' => 'int', 'primary' => true, 'serial' => true);
 	public $post_id = array('type' => 'int', 'index' => true, 'required' => true);

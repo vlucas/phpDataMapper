@@ -4,7 +4,7 @@
  */
 class Fixture_Blog_Mapper extends TestMapper
 {
-	protected $source = 'test_blog';
+	protected $_datasource = 'test_blog';
 	
 	public $id = array('type' => 'int', 'primary' => true, 'serial' => true);
 	public $title = array('type' => 'string', 'required' => true);

@@ -419,7 +419,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 * Truncate a database table
 	 * Should delete all rows and reset serial/auto_increment keys to 0
 	 */
-	public function truncateSource($source) {
+	public function truncateDatasource($source) {
 		$sql = "TRUNCATE TABLE " . $source;
 		
 		// Add query to log
@@ -433,7 +433,7 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	 * Drop a database table
 	 * Destructive and dangerous - drops entire table and all data
 	 */
-	public function dropSource($source) {
+	public function dropDatasource($source) {
 		$sql = "DROP TABLE " . $source;
 		
 		// Add query to log
