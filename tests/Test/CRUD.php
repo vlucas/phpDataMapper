@@ -1,11 +1,9 @@
 <?php
-require_once dirname(__FILE__) . '/init.php';
-
 /**
  * Basic CRUD Tests
  * Create, Read, Update, Delete
  */
-class CRUDTest extends PHPUnit_Framework_TestCase
+class Test_CRUD extends PHPUnit_Framework_TestCase
 {
 	protected $backupGlobals = false;
 	protected $blogMapper;

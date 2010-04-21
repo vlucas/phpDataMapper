@@ -1,10 +1,8 @@
 <?php
-require_once dirname(__FILE__) . '/init.php';
-
 /**
  * Tests to stress the Query adapter and how it handles conditions
  */
-class ConditionsTest extends PHPUnit_Framework_TestCase
+class Test_Conditions extends PHPUnit_Framework_TestCase
 {
 	protected $backupGlobals = false;
 	const num_posts = 10;
