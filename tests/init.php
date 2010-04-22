@@ -25,7 +25,7 @@ $testAdapters = array(
 		'host' => 'localhost:28017',
 		'username' => null,
 		'password' => null,
-		'database' => null
+		'database' => 'test'
 	)
 );
 $cli = cli_params();
