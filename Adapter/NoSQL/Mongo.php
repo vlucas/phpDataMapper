@@ -1,5 +1,5 @@
 <?php
-require_once(dirname(__FILE__) . '/Interface.php');
+require_once(dirname(dirname(__FILE__)) . '/Interface.php');
 /**
  * MongoDB NoSQL Adapter
  *
@@ -7,7 +7,7 @@ require_once(dirname(__FILE__) . '/Interface.php');
  * @link http://phpdatamapper.com
  * @link http://github.com/vlucas/phpDataMapper
  */
-abstract class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interface
+class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interface
 {
 	// Format for date columns, formatted for PHP's date() function
 	protected $format_date;
@@ -76,7 +76,15 @@ abstract class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapte
 	 */
 	public function dsn()
 	{
-		return 'mongodb://' . $this->username . ':' . $this->password . '@' . $this->host . '/' . $this->database;
+		$dsn = 'mongodb://';
+		if($this->username) {
+			$dsn .= ($this->username) ? $this->username : '';
+			$dsn .= ($this->password) ? ':' . $this->password : '';
+			$dsn .= '@';
+		}
+		$dsn .= $this->host;
+		$dsn .= ($this->database) ? '/' . $this->database : '';
+		return $dsn;
 	}
 	
 	
@@ -110,6 +118,17 @@ abstract class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapte
 	public function dateTimeFormat()
 	{
 		return $this->format_datetime;
+	}
+	
+	
+	/**
+	 * Escape/quote direct user input
+	 *
+	 * @param string $string
+	 */
+	public function escape($string)
+	{
+		return $string; // Don't think Mongo needs escaping, it's not SQL, and the JSON encoding takes care of properly escaping values...
 	}
 	
 	
