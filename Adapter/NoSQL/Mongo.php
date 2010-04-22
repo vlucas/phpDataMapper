@@ -23,6 +23,9 @@ class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interfa
 	protected $password;
 	protected $options;
 	
+	// Mongo caches
+	protected $_mongoCollection;
+	protected $_mongoDatabase;
 	
     /**
     * @param mixed $host Host string or pre-existing Mongo object
@@ -83,7 +86,7 @@ class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interfa
 			$dsn .= '@';
 		}
 		$dsn .= $this->host;
-		$dsn .= ($this->database) ? '/' . $this->database : '';
+		//$dsn .= ($this->database) ? '/' . $this->database : ''; // Uses 'selectDB' instead (above) so we can attept to create db if it does not exist for migrations
 		return $dsn;
 	}
 	
@@ -150,7 +153,8 @@ class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interfa
 	 */
 	public function create($datasource, array $data)
 	{
-		return false;
+		// @link http://us3.php.net/manual/en/mongocollection.insert.php
+		return $this->mongoCollection($datasource)->insert($data);
 	}
 	
 	
@@ -161,6 +165,8 @@ class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interfa
 	{
 		// Sorting: ASC: 1,  DESC: 2
 		// @link http://api.mongodb.org/cplusplus/0.9.2/classmongo_1_1_query.html
+		
+		
 		return false;
 	}
 	
@@ -169,6 +175,8 @@ class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interfa
 	 */
 	public function update($datasource, array $data, array $where = array())
 	{
+		// @todo Check on the _id field to ensure it is set - Mongo can only 'update' existing records or you get an exception
+		
 		return false;
 	}
 	
@@ -232,5 +240,33 @@ class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interfa
 	public function toCollection(phpDataMapper_Query $query, $stmt)
 	{
 		return false;
+	}
+	
+	
+	/**
+	 * Returns current Mongo database to use
+	 */
+	protected function mongoDatabase()
+	{
+		if(empty($this->_mongoDatabase)) {
+			if(!$this->database) {
+				throw new phpDataMapper_Exception("Mongo must have a database to connect to. No database name was specified.");
+			}
+			$this->connection(); // Just call to ensure we have a db connection established
+			$this->_mongoDatabase = $this->connection->selectDB($this->database);
+		}
+		return $this->_mongoDatabase;
+	}
+	
+	
+	/**
+	 * Returns current Mongo collection to use
+	 */
+	protected function mongoCollection($collectionName)
+	{
+		if(!isset($this->_mongoCollection[$collectionName])) {
+			$this->_mongoCollection[$collectionName] = $this->mongoDatabase()->selectCollection($collectionName);
+		}
+		return $this->_mongoCollection[$collectionName];
 	}
 }
