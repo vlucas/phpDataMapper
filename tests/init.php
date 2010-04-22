@@ -16,14 +16,14 @@ $testAdapters = array(
 	'mysql' => array(
 		'adapter' => 'phpDataMapper_Adapter_Mysql',
 		'host' => 'localhost',
-		'user' => 'root',
+		'username' => 'root',
 		'password' => null,
 		'database' => 'test'
 	),
 	'mongo' => array(
 		'adapter' => 'phpDataMapper_Adapter_NoSQL_Mongo',
 		'host' => 'localhost:28017',
-		'user' => null,
+		'username' => null,
 		'password' => null,
 		'database' => null
 	)
@@ -45,10 +45,12 @@ function fixture_adapter()
 		throw new Exception("[ERROR] Unknown datasource adapter type '" . $adapterType . "'");
 	}
 	
+	$adapter = $testAdapters[$adapterType];
+	 
 	// New adapter instance (connection) if one does not exist yet
 	if(!isset($fixture_adapter[$adapterType])) {
-		$adapterClass = $testAdapters[$adapterType]['adapter'];
-		$fixture_adapter[$adapterType] = new $adapterClass('localhost', 'test', 'root', '');
+		$adapterClass = $adapter['adapter'];
+		$fixture_adapter[$adapterType] = new $adapterClass($adapter['host'], $adapter['database'], $adapter['username'], $adapter['password']);
 	}
 	return $fixture_adapter[$adapterType];
 }
