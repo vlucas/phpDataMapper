@@ -481,32 +481,35 @@ class phpDataMapper_Base
 		$relationColumns = $this->getRelationsFor($entity);
 		foreach($entity->toArray() as $field => $value) {
 			if($relationColumns && array_key_exists($field, $relationColumns) && (is_array($value) || is_object($value))) {
-				foreach($value as $relatedRow) {
-					// Determine relation object
-					if($value instanceof phpDataMapper_Relation) {
-						$relatedObj = $value;
-					} else {
-						$relatedObj = $relationColumns[$field];
-					}
-					$relatedMapper = $relatedObj->mapper();
-					
-					// Row object
-					if($relatedRow instanceof phpDataMapper_Entity) {
-						$relatedRowObj = $relatedRow;
+				// Determine relation object
+				if($value instanceof phpDataMapper_Relation) {
+					$relatedObj = $value;
+				} else {
+					$relatedObj = $relationColumns[$field];
+				}
+				$relatedMapper = $relatedObj->mapper();
+				
+				// Array of related entity objects to be saved
+				if(is_array($value)) {
+					foreach($value as $relatedRow) {
+						// Row object
+						if($relatedRow instanceof phpDataMapper_Entity) {
+							$relatedRowObj = $relatedRow;
+							
+						// Associative array
+						} elseif(is_array($relatedRow)) {
+							$relatedRowObj = new $this->_entityClass($relatedRow);
+						}
 						
-					// Associative array
-					} elseif(is_array($relatedRow)) {
-						$relatedRowObj = new $this->_entityClass($relatedRow);
+						// Set column values on row only if other data has been updated (prevents queries for unchanged existing rows)
+						if(count($relatedRowObj->dataModified()) > 0) {
+							$fillData = array_merge($relatedObj->foreignKeys(), $fillData);
+							$relatedRowObj->data($fillData);
+						}
+						
+						// Save related row
+						$relatedMapper->save($relatedRowObj);
 					}
-					
-					// Set column values on row only if other data has been updated (prevents queries for unchanged existing rows)
-					if(count($relatedRowObj->dataModified()) > 0) {
-						$fillData = array_merge($relatedObj->foreignKeys(), $fillData);
-						$relatedRowObj->data($fillData);
-					}
-					
-					// Save related row
-					$relatedMapper->save($relatedRowObj);
 				}
 			}
 		}
