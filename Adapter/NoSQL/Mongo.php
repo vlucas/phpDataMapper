@@ -1,18 +1,18 @@
 <?php
+require_once(dirname(dirname(__FILE__)) . '/Abstract.php');
 require_once(dirname(dirname(__FILE__)) . '/Interface.php');
 /**
  * MongoDB NoSQL Adapter
  *
  * @package phpDataMapper
  * @link http://phpdatamapper.com
- * @link http://github.com/vlucas/phpDataMapper
  */
-class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interface
+class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract implements phpDataMapper_Adapter_Interface
 {
 	// Format for date columns, formatted for PHP's date() function
-	protected $format_date;
-	protected $format_time;
-	protected $format_datetime;
+	protected $format_date = 'Y-m-d';
+	protected $format_time = 'H:i:s';
+	protected $format_datetime = 'Y-m-d H:i:s';
 	
 	
 	// Connection details
@@ -121,6 +121,45 @@ class phpDataMapper_Adapter_NoSQL_Mongo implements phpDataMapper_Adapter_Interfa
 	public function dateTimeFormat()
 	{
 		return $this->format_datetime;
+	}
+	
+	
+	/**
+	 * Get date
+	 *
+	 * @return object MongoDate
+	 */
+	public function date($format = null)
+	{
+		// MongoDB only supports timestamps for now, not direct DateTime objects
+		$format = parent::date($format)->format('U');
+		return new MongoDate($format);
+	}
+	
+	
+	/**
+	 * Get database time format
+	 *
+	 * @return object MongoDate 
+	 */
+	public function time($format = null)
+	{
+		// MongoDB only supports timestamps for now, not direct DateTime objects
+		$format = parent::time($format)->format('U');
+		return new MongoDate($format);
+	}
+	
+	
+	/**
+	 * Get datetime
+	 *
+	 * @return object MongoDate
+	 */
+	public function dateTime($format = null)
+	{
+		// MongoDB only supports timestamps for now, not direct DateTime objects
+		$format = parent::dateTime($format)->format('U');
+		return new MongoDate($format);
 	}
 	
 	

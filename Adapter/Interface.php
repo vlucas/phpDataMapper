@@ -43,6 +43,24 @@ interface phpDataMapper_Adapter_Interface
 	
 	
 	/**
+	 * Get date in format that adapter understands for queries
+	 */
+	public function date($format);
+	
+	
+	/**
+	 * Get time in format that adapter understands for queries
+	 */
+	public function time($format);
+	
+	
+	/**
+	 * Get datetime in format that adapter understands for queries
+	 */
+	public function dateTime($format);
+	
+	
+	/**
 	 * Escape/quote direct user input
 	 *
 	 * @param string $string

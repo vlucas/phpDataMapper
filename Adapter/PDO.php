@@ -1,4 +1,5 @@
 <?php
+require_once(dirname(__FILE__) . '/Abstract.php');
 require_once(dirname(__FILE__) . '/Interface.php');
 /**
  * Base PDO adapter
@@ -7,7 +8,7 @@ require_once(dirname(__FILE__) . '/Interface.php');
  * @link http://phpdatamapper.com
  * @link http://github.com/vlucas/phpDataMapper
  */
-abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interface
+abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract implements phpDataMapper_Adapter_Interface
 {
 	// Format for date columns, formatted for PHP's date() function
 	protected $format_date;
@@ -83,39 +84,6 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 	public function dsn()
 	{
 		throw new BadMethodCallException("Error: Method " . __FUNCTION__ . " must be defined in the adapter");
-	}
-	
-	
-	/**
-	 * Get database format
-	 *
-	 * @return string Date format for PHP's date() function
-	 */
-	public function dateFormat()
-	{
-		return $this->format_date;
-	}
-	
-	
-	/**
-	 * Get database time format
-	 *
-	 * @return string Time format for PHP's date() function
-	 */
-	public function timeFormat()
-	{
-		return $this->format_time;
-	}
-	
-	
-	/**
-	 * Get database format
-	 *
-	 * @return string DateTime format for PHP's date() function
-	 */
-	public function dateTimeFormat()
-	{
-		return $this->format_datetime;
 	}
 	
 	
