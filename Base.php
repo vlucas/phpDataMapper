@@ -276,6 +276,18 @@ class phpDataMapper_Base
 	
 	
 	/**
+	 * Return field type
+	 *
+	 * @param string $field Field name
+	 * @return mixed Field type string or boolean false
+	 */
+	public function fieldType($field)
+	{
+		return $this->fieldExists($field) ? $this->_fields[$field]['type'] : false;
+	}
+	
+	
+	/**
 	 * Load record from primary key
 	 */
 	public function get($primaryKeyValue = 0)
