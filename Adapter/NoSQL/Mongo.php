@@ -199,12 +199,38 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	
 	/**
 	 * Build a Mongo query
+	 *
+	 * Finding: @link http://us.php.net/manual/en/mongocollection.find.php
+	 * Fields: @link http://us.php.net/manual/en/mongocursor.fields.php
+	 * Cursor: @link http://us.php.net/manual/en/class.mongocursor.php
+	 * Sorting: @link http://us.php.net/manual/en/mongocursor.sort.php
 	 */
 	public function read(phpDataMapper_Query $query)
 	{
-		// Sorting: ASC: 1,  DESC: 2
-		// @link http://api.mongodb.org/cplusplus/0.9.2/classmongo_1_1_query.html
+		// Get MongoCursor first - it's required for other options
+		$mongoQuery = $this->mongoCollection()
 		
+		// Organize 'order' options for sorting
+		$order = array();
+		if($query->order) {
+			foreach($query->order as $oField => $oSort) {
+				// MongoDB sorting: ASC: 1,  DESC: 2
+				$order[$oField] = ($oSort == 'DESC') ? 2 : 1;
+			}
+		}
+		
+		// GROUP BY
+		if($query->group) {
+			throw new phpDataMapper_Exception("Mongo adapter does not current support grouping");
+		}
+		
+		// LIMIT
+		if($query->limit) {
+			
+		}
+		/*
+			" . ($query->limit ? 'LIMIT ' . $query->limit : '') . " " . ($query->limit && $query->limitOffset ? 'OFFSET ' . $query->limitOffset: '') . "
+		*/
 		
 		return false;
 	}

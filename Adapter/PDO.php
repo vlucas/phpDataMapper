@@ -214,16 +214,21 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 	/**
 	 * Create new row object with set properties
 	 */
-	public function create($source, array $data)
+	public function create($datasource, array $data)
 	{
 		$binds = $this->statementBinds($data);
 		// build the statement
-		$sql = "INSERT INTO " . $source .
+		$sql = "INSERT INTO " . $datasource .
 			" (" . implode(', ', array_keys($data)) . ")" .
 			" VALUES(:" . implode(', :', array_keys($binds)) . ")";
 		
 		// Add query to log
 		phpDataMapper_Base::logQuery($sql, $binds);
+		/*
+		var_dump($sql);
+		var_dump($binds);
+		echo "\n\n------------------------\n";
+		*/
 		
 		// Prepare update query
 		$stmt = $this->connection()->prepare($sql);
@@ -262,7 +267,7 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 		
 		$sql = "
 			SELECT " . $this->statementFields($query->fields) . "
-			FROM " . $query->source . "
+			FROM " . $query->datasource . "
 			" . ($conditions ? 'WHERE ' . $conditions : '') . "
 			" . ($query->group ? 'GROUP BY ' . implode(', ', $query->group) : '') . "
 			" . ($order ? 'ORDER BY ' . implode(', ', $order) : '') . "
@@ -301,7 +306,7 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 	/**
 	 * Update entity
 	 */
-	public function update($source, array $data, array $where = array())
+	public function update($datasource, array $data, array $where = array())
 	{
 		// Get "col = :col" pairs for the update query
 		$placeholders = array();
@@ -323,7 +328,7 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 		// Ensure there are actually updated values on THIS table
 		if(count($binds) > 0) {
 			// Build the query
-			$sql = "UPDATE " . $source .
+			$sql = "UPDATE " . $datasource .
 				" SET " . implode(', ', $placeholders) .
 				" WHERE " . implode(' AND ', $sqlWheres);
 			
@@ -357,12 +362,12 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 	 * @param string $source Name of data source
 	 * @param array $conditions Array of conditions in column => value pairs
 	 */
-	public function delete($source, array $data)
+	public function delete($datasource, array $data)
 	{
 		$binds = $this->statementBinds($data);
 		$conditions = $this->statementConditions($data);
 		
-		$sql = "DELETE FROM " . $source . "";
+		$sql = "DELETE FROM " . $datasource . "";
 		$sql .= ($conditions ? ' WHERE ' . $conditions : '');
 		
 		// Add query to log
@@ -529,8 +534,23 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 				$loopOnce = true;
 			}
 			foreach($subConditions as $column => $value) {
-				// Can't bind array of values
-				if(!is_array($value) && !is_object($value)) {
+				
+				$bindValue = false;
+				
+				// Handle binding depending on type
+				if(is_object($value)) {
+					if($value instanceof DateTime) {
+						// @todo Need to take into account column type for date formatting
+						$bindValue = (string) $value->format($this->dateTimeFormat());
+					} else {
+						$bindValue = (string) $value; // Attempt cast of object to string (calls object's __toString method)
+					}
+				} elseif(!is_array($value)) {
+					$bindValue = $value;
+				}
+				
+				// Bind given value
+				if($bindValue !== false) {
 					// Column name with comparison operator
 					$colData = explode(' ', $column);
 					if ( count( $colData ) > 2 ) {
@@ -541,7 +561,7 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 					$colParam = preg_replace('/\W+/', '_', $col) . $ci;
 					
 					// Add to binds array and add to WHERE clause
-					$binds[$colParam] = $value;
+					$binds[$colParam] = $bindValue;
 				}
 				
 				// Increment ensures column name distinction
