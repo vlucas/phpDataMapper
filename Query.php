@@ -12,7 +12,7 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	
 	// Storage for query properties
 	public $fields = array();
-	public $source;
+	public $datasource;
 	public $conditions = array();
 	public $order = array();
 	public $group = array();
@@ -45,11 +45,11 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	 * @param string $source Data source name
 	 * @return string
 	 */
-	public function select($fields = "*", $source = null)
+	public function select($fields = "*", $datasource = null)
 	{
 		$this->fields = (is_string($fields) ? explode(',', $fields) : $fields);
-		if(null !== $source) {
-			$this->from($source);
+		if(null !== $datasource) {
+			$this->from($datasource);
 		}
 		return $this;
 	}
@@ -58,12 +58,12 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	/**
 	 * From
 	 *
-	 * @param string $source Name of the data source to perform a query on
+	 * @param string $datasource Name of the data source to perform a query on
 	 * @todo Support multiple sources/joins
 	 */
-	public function from($source = null)
+	public function from($datasource = null)
 	{
-		$this->source = $source;
+		$this->datasource = $datasource;
 		return $this;
 	}
 	
