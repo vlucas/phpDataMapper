@@ -208,7 +208,8 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	public function read(phpDataMapper_Query $query)
 	{
 		// Get MongoCursor first - it's required for other options
-		$mongoQuery = $this->mongoCollection()
+		$criteria = array();
+		$mongoQuery = $this->mongoCollection()->find($criteria);
 		
 		// Organize 'order' options for sorting
 		$order = array();
