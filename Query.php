@@ -17,7 +17,7 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	public $order = array();
 	public $group = array();
 	public $limit;
-	public $limitOffset;
+	public $offset;
 	
 	
 	/**
@@ -151,16 +151,29 @@ class phpDataMapper_Query implements Countable, IteratorAggregate
 	
 	
 	/**
-	 * Limit executed query to specified amount of rows
+	 * Limit executed query to specified amount of records
 	 * Implemented at adapter-level for databases that support it
 	 * 
 	 * @param int $limit Number of records to return
-	 * @param int $offset Row to start at for limited result set
+	 * @param int $offset Record to start at for limited result set
 	 */
 	public function limit($limit = 20, $offset = null)
 	{
 		$this->limit = $limit;
-		$this->limitOffset = $offset;
+		$this->offset = $offset;
+		return $this;
+	}
+	
+	
+	/**
+	 * Offset executed query to skip specified amount of records
+	 * Implemented at adapter-level for databases that support it
+	 * 
+	 * @param int $offset Record to start at for limited result set
+	 */
+	public function offset($offset = 0)
+	{
+		$this->offset = $offset;
 		return $this;
 	}
 	
