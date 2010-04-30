@@ -24,10 +24,10 @@ class Test_Relations extends PHPUnit_Framework_TestCase
 		$post = $this->blogMapper->get();
 		$post->title = "My Awesome Blog Post";
 		$post->body = "<p>This is a really awesome super-duper post.</p><p>It's testing the relationship functions.</p>";
-		$post->date_created = date($this->blogMapper->adapter()->dateTimeFormat());
+		$post->date_created = $this->blogMapper->adapter()->dateTime();
 		$postId = $this->blogMapper->save($post);
 		
-		$this->assertTrue(is_numeric($postId));
+		$this->assertTrue($postId !== false);
 		
 		// Test selcting it to ensure it exists
 		$postx = $this->blogMapper->get($postId);
@@ -52,7 +52,7 @@ class Test_Relations extends PHPUnit_Framework_TestCase
 				'name' => 'Testy McTester',
 				'email' => 'test@test.com',
 				'body' => 'This is a test comment. Yay!',
-				'date_created' => date($commentMapper->adapter()->dateTimeFormat())
+				'date_created' => $this->blogMapper->adapter()->dateTime()
 			));
 		try {
 			$commentSaved = $commentMapper->save($comment);
@@ -61,9 +61,12 @@ class Test_Relations extends PHPUnit_Framework_TestCase
 				$this->fail("Comment NOT saved");
 			}
 		} catch(Exception $e) {
+			echo __FUNCTION__ . ": " . $e->getMessage() . "\n";
+			/*
 			echo $e->getTraceAsString();
 			$commentMapper->debug();
 			exit();
+			*/
 		}
 		$this->assertTrue($commentSaved !== false);
 	}
@@ -91,7 +94,7 @@ class Test_Relations extends PHPUnit_Framework_TestCase
 	 */
 	public function testBlogCommentsRelationCanBeModified($postId)
 	{
-		$post = $this->blogMapper->get($postId);
+		$post = $this->blogMapper->get($postId);		
 		$sortedComments = $post->comments->order(array('date_created' => 'DESC'));
 		$this->assertTrue($sortedComments instanceof phpDataMapper_Query);
 	}

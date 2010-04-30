@@ -23,7 +23,7 @@ class Test_Conditions extends PHPUnit_Framework_TestCase
 			$blogMapper->insert(array(
 				'title' => $i,
 				'body' => $i,
-				'date_created' => date($blogMapper->adapter()->dateFormat())
+				'date_created' => $blogMapper->adapter()->dateTime()
 			));
 		}
 	}

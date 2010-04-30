@@ -55,7 +55,7 @@ class Test_CRUD extends PHPUnit_Framework_TestCase
 			$mapper->debug();
 		}
 		
-		$this->assertTrue(is_numeric($result));
+		$this->assertTrue($result !== false);
 	}
 	
 	public function testSampleNewsUpdate()
