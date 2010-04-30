@@ -193,7 +193,8 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	public function create($datasource, array $data)
 	{
 		// @link http://us3.php.net/manual/en/mongocollection.insert.php
-		return $this->mongoCollection($datasource)->insert($data);
+		$saved = $this->mongoCollection($datasource)->insert($data);
+		return ($saved) ? $data['_id'] : false;
 	}
 	
 	
@@ -208,8 +209,15 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	public function read(phpDataMapper_Query $query)
 	{
 		// Get MongoCursor first - it's required for other options
-		$criteria = array();
-		$mongoQuery = $this->mongoCollection()->find($criteria);
+		$criteria = $this->queryConditions($query);
+		$mongoQuery = $this->mongoCollection($query->datasource)->find($criteria);
+		
+		/*
+		echo "\n-------\n";
+		var_dump($criteria);
+		echo "-------: ";
+		//exit();
+		*/
 		
 		// Organize 'order' options for sorting
 		$order = array();
@@ -219,19 +227,20 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 				$order[$oField] = ($oSort == 'DESC') ? 2 : 1;
 			}
 		}
+		$mongoQuery->sort($order);
 		
 		// GROUP BY
 		if($query->group) {
 			throw new phpDataMapper_Exception("Mongo adapter does not current support grouping");
 		}
 		
-		// LIMIT
+		// LIMIT & OFFSET (Skip)
 		if($query->limit) {
-			
+			$mongoQuery->limit($query->limit);
 		}
-		/*
-			" . ($query->limit ? 'LIMIT ' . $query->limit : '') . " " . ($query->limit && $query->limitOffset ? 'OFFSET ' . $query->limitOffset: '') . "
-		*/
+		if($query->offset) {
+			$mongoQuery->skip($query->offset);
+		}
 		
 		return false;
 	}
@@ -242,6 +251,11 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	public function update($datasource, array $data, array $where = array())
 	{
 		// @todo Check on the _id field to ensure it is set - Mongo can only 'update' existing records or you get an exception
+		
+		$criteria = $this->queryConditions($where);
+		// We are updating multiple entries by default, the same way RDBMS do
+		$mongoQuery = $this->mongoCollection($query->datasource)
+			->update($criteria, array('$set' => $data), array('multiple' => true));
 		
 		return false;
 	}
@@ -255,7 +269,95 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	 */
 	public function delete($datasource, array $data)
 	{
-		return false;
+		// Get MongoCursor first - it's required for other options
+		$criteria = $this->queryConditions($query);
+		$mongoQuery = $this->mongoCollection($query->datasource)->remove($criteria);
+		return $mongoQuery;
+	}
+	
+	
+	/**
+	 * Returns query conditions in a way that is formatted for Mongo to use
+	 *
+	 * @param mixed phpDataMapper_Query object or associative array
+	 */
+	public function queryConditions($query)
+	{
+		$conditions = $query;
+		if(is_object($query) && $query instanceof phpDataMapper_Query) {
+			$conditions = $query->conditions;
+		}
+		
+		if(count($conditions) == 0) { return array(); }
+		
+		$opts = array();
+		$loopOnce = false;
+		foreach($conditions as $condition) {
+			if(is_array($condition) && isset($condition['conditions'])) {
+				$subConditions = $condition['conditions'];
+			} else {
+				$subConditions = $conditions;
+				$loopOnce = true;
+			}
+			foreach($subConditions as $field => $value) {
+				
+				// Handle binding depending on type
+				if(is_object($value)) {
+					if($value instanceof DateTime) {
+						// @todo Need to take into account column type for date formatting
+						$fieldType = $query->mapper()->fieldType($field);
+						$dateTimeFormat = ($fieldType == 'date' ? $this->dateFormat() : ($fieldType == 'time' ? $this->timeFormat() : $this->dateTimeFormat()));
+						$value = (string) $value->format($dateTimeFormat);
+					} else {
+						// Attempt cast of object to string (calls object's __toString method)
+						// Will cause E_FATAL if object cannot be cast to string
+						if(!($value instanceof MongoId)) {
+							$value = (string) $value;
+						}
+					}
+				}
+				
+				// Special check for Mongo's '_id' field - it needs to be a MongoId object instance
+				if($field == '_id' && is_string($value)) {
+					$value = new MongoId($value);
+				}
+				
+				// Column name with comparison operator
+				$colData = explode(' ', $field);
+				$operator = '=';
+				if ( count( $colData ) > 2 ) {
+					$operator = array_pop( $colData );
+					$colData = array( implode(' ', $colData), $operator );
+				}
+				$col = $colData[0];
+				
+				// @todo MERGE these array values on the column so they don't overwrite each other
+				switch($operator) {
+					case '<':
+						$value = array('$lt' => $value);
+					break;
+					case '<=':
+						$value = array('$lte' => $value);
+					break;
+					case '>':
+						$value = array('$gt' => $value);
+					break;
+					case '>=':
+						$value = array('$gte' => $value);
+					break;
+					// Not equal
+					case '<>':
+					case '!=':
+						$value = array('$ne' => $value);
+					break;
+				}
+				
+				// Add value to set options
+				$opts[$col] = $value;
+			}
+			if($loopOnce) { break; }
+		}
+		return $opts;
 	}
 	
 	
@@ -265,7 +367,7 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	 */
 	public function truncateDatasource($datasource)
 	{
-		return false;
+		return $this->mongoCollection($query->datasource)->remove(array());
 	}
 	
 	
@@ -275,7 +377,7 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	 */
 	public function dropDatasource($datasource)
 	{
-		return false;
+		return $this->mongoCollection($query->datasource)->drop();
 	}
 	
 	
