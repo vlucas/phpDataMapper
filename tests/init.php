@@ -136,6 +136,7 @@ class TestMapper extends phpDataMapper_Base
 	// Auto-migrate upon instantiation
 	public function init()
 	{
+		$this->dropDatasource();
 		$this->migrate();
 	}
 }

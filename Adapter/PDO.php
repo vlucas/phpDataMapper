@@ -473,31 +473,83 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 				$loopOnce = true;
 			}
 			$sqlWhere = array();
+			$operator = '=';
 			foreach($subConditions as $column => $value) {
+				$whereClause = '';
+				
 				// Column name with comparison operator
 				$colData = explode(' ', $column);
 				if ( count( $colData ) > 2 ) {
 					$operator = array_pop( $colData );
-					$colData = array( join(' ', $colData), $operator );
+					$colData = array( implode(' ', $colData), $operator );
 				}
 				$col = $colData[0];
 				
-				// Array of values, assume IN clause
+				// Determine which operator to use based on custom and standard syntax
+				switch($operator) {
+					case '<':
+					case ':lt':
+						$operator = '<';
+					break;
+					case '<=':
+					case ':lte':
+						$operator = '<=';
+					break;
+					case '>':
+					case ':gt':
+						$operator = '>';
+					break;
+					case '>=':
+					case ':gte':
+						$operator = '>=';
+					break;
+					// ALL - Find ALL values in a set - Kind of like IN(), but seeking *all* the values
+					case ':all':
+						throw new phpDataMapper_Exception("SQL adapters do not currently support the ':all' operator");
+					break;
+					// Not equal
+					case '<>':
+					case '!=':
+					case ':ne':
+					case ':not':
+						$operator = '!=';
+						if(is_array($value)) {
+							$operator = "NOT IN";
+						} elseif(is_null($value)) {
+							$operator = "IS NOT NULL";
+						}
+					break;
+					// Equals
+					case '=':
+					case ':eq':
+					default:
+						$operator = '=';
+						if(is_array($value)) {
+							$operator = "IN";
+						} elseif(is_null($value)) {
+							$operator = "IS NULL";
+						}
+					break;
+				}
+				
+				// If WHERE clause not already set by the code above...
 				if(is_array($value)) {
-					$sqlWhere[] = $col . " IN('" . implode("', '", $value) . "')";
-				
-				// NULL value
+					$valueIn = "";
+					foreach($value as $val) {
+						$valueIn .= $this->escape($val) . ",";
+					}
+					$value = "(" . trim($valueIn, ',') . ")";
+					$whereClause = $col . " " . $operator . " " . $value;
 				} elseif(is_null($value)) {
-					$sqlWhere[] = $col . " IS NULL";
+					$whereClause = $col . " " . $operator;
+				}
 				
-				// Standard string value
-				} else {
-					$colComparison = isset($colData[1]) ? $colData[1] : '=';
-					$columnSql = $col . ' ' . $colComparison;
-					
+				if(empty($whereClause)) {
 					// Add to binds array and add to WHERE clause
 					$colParam = preg_replace('/\W+/', '_', $col) . $ci;
-					$sqlWhere[] = $columnSql . " :" . $colParam . "";
+					$sqlWhere[] = $col . " " . $operator . " :" . $colParam . "";
+				} else {
+					$sqlWhere[] = $whereClause;
 				}
 				
 				// Increment ensures column name distinction
@@ -553,6 +605,7 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 				if($bindValue !== false) {
 					// Column name with comparison operator
 					$colData = explode(' ', $column);
+					$operator = '=';
 					if ( count( $colData ) > 2 ) {
 						$operator = array_pop( $colData );
 						$colData = array( implode(' ', $colData), $operator );

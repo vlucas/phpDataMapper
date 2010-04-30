@@ -210,7 +210,7 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	{
 		// Get MongoCursor first - it's required for other options
 		$criteria = $this->queryConditions($query);
-		$mongoQuery = $this->mongoCollection($query->datasource)->find($criteria);
+		$mongoCursor = $this->mongoCollection($query->datasource)->find($criteria);
 		
 		/*
 		echo "\n-------\n";
@@ -227,22 +227,26 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 				$order[$oField] = ($oSort == 'DESC') ? 2 : 1;
 			}
 		}
-		$mongoQuery->sort($order);
+		$mongoCursor->sort($order);
 		
-		// GROUP BY
+		// @todo GROUP BY - Not supported YET (!)
+		// @link http://www.mongodb.org/display/DOCS/Aggregation#Aggregation-Group
 		if($query->group) {
-			throw new phpDataMapper_Exception("Mongo adapter does not current support grouping");
+			throw new phpDataMapper_Exception("Grouping for the Mongo adapter has not currently been implemented. Would you like to contribute? :)");
 		}
 		
 		// LIMIT & OFFSET (Skip)
 		if($query->limit) {
-			$mongoQuery->limit($query->limit);
+			$mongoCursor->limit($query->limit);
 		}
 		if($query->offset) {
-			$mongoQuery->skip($query->offset);
+			$mongoCursor->skip($query->offset);
 		}
 		
-		return false;
+		// Add query to log
+		phpDataMapper_Base::logQuery("MongoDB Query", $criteria);
+		
+		return $this->toCollection($query, $mongoCursor);
 	}
 	
 	/**
@@ -334,21 +338,43 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 				// @todo MERGE these array values on the column so they don't overwrite each other
 				switch($operator) {
 					case '<':
+					case ':lt':
 						$value = array('$lt' => $value);
 					break;
 					case '<=':
+					case ':lte':
 						$value = array('$lte' => $value);
 					break;
 					case '>':
+					case ':gt':
 						$value = array('$gt' => $value);
 					break;
 					case '>=':
+					case ':gte':
 						$value = array('$gte' => $value);
+					break;
+					// ALL (Custom to Mongo, but can be adapted to SQL with some clever WHERE clauses)
+					case ':all':
+						$value = array('$all' => $value);
 					break;
 					// Not equal
 					case '<>':
 					case '!=':
-						$value = array('$ne' => $value);
+					case ':ne':
+					case ':not':
+						if(is_array($value)) {
+							$value = array('$nin' => $value); // NOT IN
+						} else {
+							$value = array('$ne' => $value);
+						}
+					break;
+					// Equals
+					case '=':
+					case ':eq':
+					default:
+						if(is_array($value)) {
+							$value = array('$in' => $value); // IN
+						}
 					break;
 				}
 				
@@ -405,9 +431,45 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	/**
 	 * Return result set for current query
 	 */
-	public function toCollection(phpDataMapper_Query $query, $stmt)
+	public function toCollection(phpDataMapper_Query $query, MongoCursor $cursor)
 	{
-		return false;
+		$mapper = $query->mapper();
+		if($cursor instanceof MongoCursor) {
+			$results = array();
+			$resultsIdentities = array();
+			
+			// Fetch all results into new entity class
+			// @todo Move this to collection class so entities will be lazy-loaded by Collection iteration
+			foreach($cursor as $entity) {
+				
+				// Load relations for this row
+				$relations = $mapper->getRelationsFor($entity);
+				if($relations && is_array($relations) && count($relations) > 0) {
+					foreach($relations as $relationCol => $relationObj) {
+						$entity->$relationCol = $relationObj;
+					}
+				}
+				
+				// Store in array for Collection
+				$results[] = $entity;
+				
+				// Store primary key of each unique record in set
+				$pk = $mapper->primaryKey($entity);
+				if(!in_array($pk, $resultsIdentities) && !empty($pk)) {
+					$resultsIdentities[] = $pk;
+				}
+				
+				// Mark row as loaded
+				$entity->loaded(true);
+			}
+			
+			$collectionClass = $mapper->collectionClass();
+			return new $collectionClass($results, $resultsIdentities);
+			
+		} else {
+			$mapper->addError(__METHOD__ . " - Unable to execute query - not a valid MongoCursor");
+			return array();
+		}
 	}
 	
 	
