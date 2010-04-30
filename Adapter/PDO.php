@@ -271,7 +271,7 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 			" . ($conditions ? 'WHERE ' . $conditions : '') . "
 			" . ($query->group ? 'GROUP BY ' . implode(', ', $query->group) : '') . "
 			" . ($order ? 'ORDER BY ' . implode(', ', $order) : '') . "
-			" . ($query->limit ? 'LIMIT ' . $query->limit : '') . " " . ($query->limit && $query->limitOffset ? 'OFFSET ' . $query->limitOffset: '') . "
+			" . ($query->limit ? 'LIMIT ' . $query->limit : '') . " " . ($query->limit && $query->offset ? 'OFFSET ' . $query->offset: '') . "
 			";
 		
 		// Unset any NULL values in binds (compared as "IS NULL" and "IS NOT NULL" in SQL instead)
@@ -555,7 +555,7 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 					$colData = explode(' ', $column);
 					if ( count( $colData ) > 2 ) {
 						$operator = array_pop( $colData );
-						$colData = array( join(' ', $colData), $operator );
+						$colData = array( implode(' ', $colData), $operator );
 					}
 					$col = $colData[0];
 					$colParam = preg_replace('/\W+/', '_', $col) . $ci;
