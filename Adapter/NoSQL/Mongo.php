@@ -261,7 +261,7 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 		$mongoQuery = $this->mongoCollection($query->datasource)
 			->update($criteria, array('$set' => $data), array('multiple' => true));
 		
-		return false;
+		return $mongoQuery;
 	}
 	
 	
@@ -328,10 +328,10 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 				
 				// Column name with comparison operator
 				$colData = explode(' ', $field);
-				$operator = '=';
-				if ( count( $colData ) > 2 ) {
-					$operator = array_pop( $colData );
-					$colData = array( implode(' ', $colData), $operator );
+				$operator = isset($colData[1]) ? $colData[1] : '=';
+				if(count($colData) > 2) {
+					$operator = array_pop($colData);
+					$colData = array( implode(' ', $colData), $operator);
 				}
 				$col = $colData[0];
 				
@@ -393,7 +393,7 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	 */
 	public function truncateDatasource($datasource)
 	{
-		return $this->mongoCollection($query->datasource)->remove(array());
+		return $this->mongoCollection($datasource)->remove(array());
 	}
 	
 	
@@ -403,7 +403,7 @@ class phpDataMapper_Adapter_NoSQL_Mongo extends phpDataMapper_Adapter_Abstract i
 	 */
 	public function dropDatasource($datasource)
 	{
-		return $this->mongoCollection($query->datasource)->drop();
+		return $this->mongoCollection($datasource)->drop();
 	}
 	
 	

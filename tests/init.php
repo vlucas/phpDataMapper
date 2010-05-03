@@ -29,7 +29,8 @@ $testAdapters = array(
 	)
 );
 $cli = cli_params();
-$adapterType = isset($cli['adapter']) ? strtolower($cli['adapter']) : 'mysql';
+$defaultAdapter = 'mysql';
+$adapterType = isset($cli['adapter']) ? strtolower($cli['adapter']) : $defaultAdapter;
 
 
 /**
@@ -65,6 +66,7 @@ function fixture_mapper($mapperName)
 	if(!isset($fixture_mappers[$mapperName])) {
 		$mapperClass = 'Fixture_' . $mapperName . '_Mapper';
 		$fixture_mappers[$mapperName] = new $mapperClass(fixture_adapter());
+		$fixture_mappers[$mapperName]->migrate();
 	}
 	return $fixture_mappers[$mapperName];
 }
@@ -124,7 +126,7 @@ function cli_params($noopt = array()) {
 			$result[] = $p;
 		}
 	}
-	return $result;
+	return $result + $_GET;
 }
 
 
@@ -133,10 +135,12 @@ function cli_params($noopt = array()) {
  */
 class TestMapper extends phpDataMapper_Base
 {
+	/*
 	// Auto-migrate upon instantiation
 	public function init()
 	{
 		$this->dropDatasource();
 		$this->migrate();
 	}
+	*/
 }

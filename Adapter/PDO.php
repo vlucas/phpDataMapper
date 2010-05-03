@@ -473,15 +473,15 @@ abstract class phpDataMapper_Adapter_PDO extends phpDataMapper_Adapter_Abstract 
 				$loopOnce = true;
 			}
 			$sqlWhere = array();
-			$operator = '=';
 			foreach($subConditions as $column => $value) {
 				$whereClause = '';
 				
 				// Column name with comparison operator
 				$colData = explode(' ', $column);
-				if ( count( $colData ) > 2 ) {
-					$operator = array_pop( $colData );
-					$colData = array( implode(' ', $colData), $operator );
+				$operator = isset($colData[1]) ? $colData[1] : '=';
+				if(count($colData) > 2) {
+					$operator = array_pop($colData);
+					$colData = array( implode(' ', $colData), $operator);
 				}
 				$col = $colData[0];
 				
