@@ -145,9 +145,6 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 			$tableExists = true;
 		}
 		if($tableExists) {
-			// Determine missing or changed columns, if any
-			// var_dump($tableColumns);
-			
 			// Update table
 			$this->migrateTableUpdate($table, $fields);
 		} else {
@@ -216,9 +213,13 @@ abstract class phpDataMapper_Adapter_PDO implements phpDataMapper_Adapter_Interf
 		}
 		
 		$columnsSyntax = array();
-		
+		// Update fields whose options have changed
 		foreach($updateFormattedFields as $fieldName => $fieldInfo) {
 			$columnsSyntax[$fieldName] = $this->migrateSyntaxFieldUpdate($fieldName, $fieldInfo, false);
+		}
+		// Add fields that are missing from current ones
+		foreach($formattedFields as $fieldName => $fieldInfo) {
+			$columnsSyntax[$fieldName] = $this->migrateSyntaxFieldUpdate($fieldName, $fieldInfo, true);
 		}
 		
 		// Get syntax for table with fields/columns
