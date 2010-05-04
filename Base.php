@@ -184,10 +184,10 @@ class phpDataMapper_Base
 				'null' => true,
 				'unsigned' => false,
 				
-				'auto_increment' => false,
 				'primary' => false,
 				'index' => false,
 				'unique' => false,
+				'serial' => false,
 				
 				'relation' => false
 				);
