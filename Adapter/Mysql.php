@@ -150,7 +150,7 @@ class phpDataMapper_Adapter_Mysql extends phpDataMapper_Adapter_PDO
 			$syntax .= " DEFAULT '" . $default . "'";
 		}
 		// Extra
-		$syntax .= ($fieldInfo['primary'] || $fieldInfo['auto_increment']) ? ' AUTO_INCREMENT' : '';
+		$syntax .= ($fieldInfo['primary'] && $fieldInfo['serial']) ? ' AUTO_INCREMENT' : '';
 		return $syntax;
 	}
 	
