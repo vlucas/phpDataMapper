@@ -92,7 +92,7 @@ class phpDataMapper_Entity
 	 */
 	public function toJson()
 	{
-		return json_encode($this->getData());
+		return json_encode($this->data());
 	}
 	
 	
