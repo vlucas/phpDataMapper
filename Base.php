@@ -712,7 +712,7 @@ class phpDataMapper_Base
 	 */
 	public function isEmpty($value)
 	{
-		return (empty($value) && 0 !== $value);
+		return (empty($value) && 0 !== $value && '0' !== $value);
 	}
 	
 	
