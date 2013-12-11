@@ -680,7 +680,7 @@ class phpDataMapper_Base
 		foreach($this->fields() as $field => $fieldAttrs) {
 			if(isset($fieldAttrs['required']) && true === $fieldAttrs['required']) {
 				// Required field
-				if(empty($entity->$field)) {
+				if(is_null($entity->$field)) {
 					$this->error($field, "Required field '" . $field . "' was left blank");
 				}
 			}
